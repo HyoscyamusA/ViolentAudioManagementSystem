@@ -1,0 +1,65 @@
+<!-- chart.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>暴力事件统计</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .container {
+            width: 80%;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>月度暴力事件统计</h1>
+        <canvas id="chart"></canvas>
+    </div>
+
+    <script>
+        async function loadData() {
+            try {
+                const response = await fetch('http://localhost:5000/stats/monthly');
+                const data = await response.json();
+                
+                const ctx = document.getElementById('chart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.map(d => d.month),
+                        datasets: [{
+                            label: '暴力事件数量',
+                            data: data.map(d => d.count),
+                            borderColor: '#ff4757',
+                            backgroundColor: 'rgba(255, 71, 87, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: { display: true, text: '事件数量' }
+                            },
+                            x: {
+                                title: { display: true, text: '月份' }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('加载数据失败:', error);
+            }
+        }
+        
+        loadData();
+    </script>
+</body>
+</html>

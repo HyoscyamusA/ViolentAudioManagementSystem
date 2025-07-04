@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 画布（用于粒子动画和光线流动） */
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .login-container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 15px rgba(0, 191, 255, 0.5);
+            width: 400px;
+            padding: 2rem;
+            position: relative;
+            z-index: 10;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-header h1 {
+            color: #fff;
+            font-size: 1.8rem;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group label {
+            display: block;
+            color: #ccc;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 0.8rem;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            font-size: 1rem;
+            color: white;
+            outline: none;
+        }
+
+        .input-group input:focus {
+            border-color: #00bfff;
+            box-shadow: 0 0 10px #00bfff;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 0.8rem;
+            background: linear-gradient(90deg, #00bfff, #007bff);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .login-btn:hover {
+            background: linear-gradient(90deg, #007bff, #00bfff);
+            box-shadow: 0 0 15px rgba(0, 191, 255, 0.8);
+        }
+
+        p {
+            text-align: center;
+            margin-top: 1.5rem;
+            color: white;
+        }
+
+        p a {
+            color: #00bfff;
+            text-decoration: none;
+        }
+
+        p a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="particleCanvas"></canvas>
+    
+    <div class="login-container">
+        <!-- 添加标题 -->
+        
+        <div class="login-header">
+            <!--<h1>登录</h1>-->
+            <h1 style="text-align: center; color: white; margin-bottom: 20px;">暴力事件管理系统登录</h1>
+        </div>
+        {% if error %}
+            <p class="error">{{ error }}</p>
+        {% endif %}
+        <form method="post">
+            <div class="input-group">
+                <label for="username">用户:</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div class="input-group">
+                <label for="password">密码:</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit" class="login-btn">登录</button>
+        </form>
+        <p>没有账号? <a href="/register">注册</a></p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const particles = [];
+        const lines = [];
+
+        function createParticles() {
+            for (let i = 0; i < 50; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    radius: Math.random() * 3 + 1,
+                    speedX: Math.random() * 2 - 1,
+                    speedY: Math.random() * 2 - 1
+                });
+            }
+        }
+
+        function createLines() {
+            for (let i = 0; i < 10; i++) {
+                lines.push({
+                    x: -50,
+                    y: Math.random() * canvas.height,
+                    width: Math.random() * 2 + 1,
+                    speedX: Math.random() * 2 + 1
+                });
+            }
+        }
+
+        function drawParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'rgba(0, 191, 255, 0.8)';
+            particles.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            ctx.strokeStyle = 'rgba(0, 191, 255, 0.5)';
+            lines.forEach(line => {
+                ctx.beginPath();
+                ctx.moveTo(line.x, line.y);
+                ctx.lineTo(line.x + 100, line.y);
+                ctx.lineWidth = line.width;
+                ctx.stroke();
+            });
+        }
+
+        function updateParticles() {
+            particles.forEach(p => {
+                p.x += p.speedX;
+                p.y += p.speedY;
+
+                if (p.x < 0 || p.x > canvas.width) p.speedX *= -1;
+                if (p.y < 0 || p.y > canvas.height) p.speedY *= -1;
+            });
+
+            lines.forEach(line => {
+                line.x += line.speedX;
+                if (line.x > canvas.width) {
+                    line.x = -50;
+                    line.y = Math.random() * canvas.height;
+                }
+            });
+        }
+
+        function animate() {
+            drawParticles();
+            updateParticles();
+            requestAnimationFrame(animate);
+        }
+
+        createParticles();
+        createLines();
+        animate();
+    </script>
+</body>
+</html>

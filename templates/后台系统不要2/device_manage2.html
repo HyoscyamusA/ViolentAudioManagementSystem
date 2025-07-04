@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}设备管理{% endblock %}
+{% block content %}
+    <h1>设备管理</h1>
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>设备 MAC 地址</th>
+                <th>设备名称</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for device in devices %}
+            <tr>
+                <td>{{ device.mac_address }}</td>
+                <td>
+                    <span id="device-name-{{ device.mac_address }}">{{ device.device_name or '未命名' }}</span>
+                    <input type="text" id="device-name-input-{{ device.mac_address }}" 
+                           value="{{ device.device_name or '未命名' }}" style="display: none;">
+                </td>
+                <td>
+                    <button class="btn btn-primary" 
+                            onclick="showEditNameInput('{{ device.mac_address }}')">修改名称</button>
+                    <button class="btn btn-success" 
+                            onclick="saveDeviceName('{{ device.mac_address }}')" style="display: none;"
+                            id="save-btn-{{ device.mac_address }}">保存</button>
+                    <button class="btn btn-danger" 
+                            onclick="confirmUnbind('{{ device.mac_address }}')">解绑</button>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="3" class="text-center">暂无设备记录</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <script>
+        function showEditNameInput(macAddress) {
+            const span = document.getElementById(`device-name-${macAddress}`);
+            const input = document.getElementById(`device-name-input-${macAddress}`);
+            const saveBtn = document.getElementById(`save-btn-${macAddress}`);
+            
+            span.style.display = 'none';
+            input.style.display = 'inline-block';
+            saveBtn.style.display = 'inline-block';
+        }
+
+        function saveDeviceName(macAddress) {
+            const input = document.getElementById(`device-name-input-${macAddress}`);
+            const newName = input.value.trim();
+            if (!newName) {
+                alert("设备名称不能为空");
+                return;
+            }
+
+            fetch('/device/update_name', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `mac_address=${macAddress}&new_name=${encodeURIComponent(newName)}`
+            })
+            .then(response => response.text())
+            .then(data => {
+                if (data === 'success') {
+                    const span = document.getElementById(`device-name-${macAddress}`);
+                    span.textContent = newName;
+                    span.style.display = 'inline-block';
+                    input.style.display = 'none';
+                    const saveBtn = document.getElementById(`save-btn-${macAddress}`);
+                    saveBtn.style.display = 'none';
+                } else {
+                    alert(`修改失败：${data}`);
+                }
+            });
+        }
+
+        function confirmUnbind(macAddress) {
+            if (confirm('确认要解绑该设备吗？解绑后将失去设备关联！')) {
+                fetch('/device/unbind', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `mac_address=${macAddress}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert(data.message);
+                        window.location.reload();
+                    } else {
+                        alert(data.message);
+                    }
+                });
+            }
+        }
+    </script>
+{% endblock %}

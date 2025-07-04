@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>暴力事件折线图</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background-color: #f9f9f9;
+      margin-top: 50px;
+    }
+
+    .container {
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      display: inline-block;
+      width: 90%;
+      max-width: 800px;
+    }
+
+    canvas {
+      margin-top: 20px;
+    }
+
+    button {
+      background-color: #28a745;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-radius: 5px;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background-color: #218838;
+    }
+
+    #monthly-counts {
+      margin-top: 20px;
+      text-align: left;
+      font-size: 14px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>暴力事件折线图</h1>
+    <canvas id="resultsChart"></canvas>
+    <div id="monthly-counts"></div>
+    <button id="back-btn">返回上传页面</button>
+  </div>
+
+  <script>
+    const chartCanvas = document.getElementById('resultsChart');
+    const backButton = document.getElementById('back-btn');
+    let resultsChart;
+    let monthlyCounts = [];
+
+    // 加载折线图数据
+    async function loadChartData() {
+      try {
+        const response = await fetch('http://127.0.0.1:5000/results');
+        const data = await response.json();
+
+        if (response.ok) {
+          const timestamps = data.data.map(item => {
+            const date = new Date(item.timestamp);
+            return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+          });
+          const probabilities = data.data.map(item => item.probability);
+
+          // 初始化或更新图表
+          if (resultsChart) {
+            resultsChart.destroy();
+          }
+
+          resultsChart = new Chart(chartCanvas, {
+            type: 'line',
+            data: {
+              labels: timestamps,  // 横坐标显示日期
+              datasets: [{
+                label: '暴力事件概率',
+                data: probabilities,
+                borderColor: '#4caf50',
+                fill: false,
+                tension: 0.1
+              }]
+            },
+            options: {
+              responsive: true,
+              plugins: {
+                legend: {
+                  display: true
+                },
+                tooltip: {
+                  callbacks: {
+                    title: function(tooltipItem) {
+                      const timestamp = tooltipItem[0].label;
+                      return `日期: ${timestamp}`;
+                    },
+                    label: function(tooltipItem) {
+                      const probability = tooltipItem.raw;
+                      const fullTimestamp = new Date(data.data[tooltipItem.dataIndex].timestamp);
+                      const fullTimestampStr = `${fullTimestamp.getFullYear()}-${(fullTimestamp.getMonth() + 1).toString().padStart(2, '0')}-${fullTimestamp.getDate().toString().padStart(2, '0')} ${fullTimestamp.getHours().toString().padStart(2, '0')}:${fullTimestamp.getMinutes().toString().padStart(2, '0')}:${fullTimestamp.getSeconds().toString().padStart(2, '0')}`;
+                      return `暴力事件概率: ${probability.toFixed(2)}\n上传时间: ${fullTimestampStr}`;
+                    }
+                  }
+                }
+              }
+            }
+          });
+        } else {
+          console.error('加载图表数据失败:', data.message);
+        }
+      } catch (error) {
+        console.error('加载图表数据时发生错误:', error);
+      }
+    }
+
+    // 加载每月上传次数
+    async function loadMonthlyCounts() {
+      try {
+        const response = await fetch('http://127.0.0.1:5000/monthly_counts');
+        const data = await response.json();
+
+        if (response.ok) {
+          monthlyCounts = data.data;
+          displayMonthlyCounts();
+        } else {
+          console.error('加载每月上传次数失败:', data.message);
+        }
+      } catch (error) {
+        console.error('加载每月上传次数时发生错误:', error);
+      }
+    }
+
+    // 显示每月上传次数
+    function displayMonthlyCounts() {
+      const monthlyCountsContainer = document.getElementById('monthly-counts');
+      monthlyCountsContainer.innerHTML = '';  // 清空现有内容
+
+      monthlyCounts.forEach(item => {
+        const countElement = document.createElement('div');
+        countElement.textContent = `${item.month}: ${item.count} 次`;
+        monthlyCountsContainer.appendChild(countElement);
+      });
+    }
+
+    // 返回主页面
+    backButton.addEventListener('click', () => {
+      window.location.href = 'test.html';
+    });
+
+    // 初始加载图表数据和每月上传次数
+    loadChartData();
+    loadMonthlyCounts();
+  </script>
+</body>
+</html>

@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}设备管理{% endblock %}
+{% block content %}
+    <h1>设备管理</h1>
+    <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+        <thead>
+            <tr style="background-color: #f2f2f2; border-bottom: 2px solid #ddd;">
+                <th style="padding: 12px; text-align: left;">设备 MAC 地址</th>
+                <th style="padding: 12px; text-align: left;">设备名称</th>
+                {% if role == 'admin' %}
+                    <th style="padding: 12px; text-align: left;">所属用户</th>
+                {% endif %}
+                <th style="padding: 12px; text-align: left;">操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for device in devices %}
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 10px; border-right: 1px solid #eee;">{{ device['mac_address'] }}</td>
+                <td id="device_name_{{ device['mac_address'] }}" style="padding: 10px; border-right: 1px solid #eee;">
+                    {{ device['device_name'] }}
+                </td>
+                {% if role == 'admin' %}
+                    <td style="padding: 10px; border-right: 1px solid #eee;">{{ device['username'] }}</td>
+                {% endif %}
+                <td style="padding: 10px;">
+                    <button 
+                        onclick="editDeviceName('{{ device['mac_address']|replace("'", "\\'") }}')"
+                        style="
+                            padding: 6px 12px;
+                            background-color: #4285f4;
+                            color: white;
+                            border: none;
+                            border-radius: 4px;
+                            cursor: pointer;
+                        "
+                    >
+                        修改设备名称
+                    </button>
+                    <input 
+                        type="text" 
+                        id="new_name_{{ device['mac_address'] }}" 
+                        style="display: none; margin-left: 5px; padding: 6px;"
+                    >
+                    <button 
+                        onclick="saveDeviceName('{{ device['mac_address']|replace("'", "\\'") }}')" 
+                        style="
+                            display: none;
+                            padding: 6px 12px;
+                            background-color: #0f9d58;
+                            color: white;
+                            border: none;
+                            border-radius: 4px;
+                            cursor: pointer;
+                            margin-left: 5px;
+                        "
+                    >
+                        保存
+                    </button>
+                    <button 
+                        onclick="cancelEdit('{{ device['mac_address']|replace("'", "\\'") }}')" 
+                        style="
+                            display: none;
+                            padding: 6px 12px;
+                            background-color: #db4437;
+                            color: white;
+                            border: none;
+                            border-radius: 4px;
+                            cursor: pointer;
+                            margin-left: 5px;
+                        "
+                    >
+                        取消
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <script>
+        function editDeviceName(macAddress) {
+            const deviceNameElement = document.getElementById(`device_name_${macAddress}`);
+            const newNameInput = document.getElementById(`new_name_${macAddress}`);
+            const saveButton = document.querySelector(`[onclick="saveDeviceName('${macAddress}')"]`);
+            const cancelButton = document.querySelector(`[onclick="cancelEdit('${macAddress}')"]`);
+            const editButton = document.querySelector(`[onclick="editDeviceName('${macAddress}')"]`);
+
+            deviceNameElement.style.display = 'none';
+            newNameInput.value = deviceNameElement.textContent;
+            newNameInput.style.display = 'inline';
+            saveButton.style.display = 'inline';
+            cancelButton.style.display = 'inline';
+            editButton.style.display = 'none';
+        }
+
+        function saveDeviceName(macAddress) {
+            const newNameInput = document.getElementById(`new_name_${macAddress}`);
+            const newName = newNameInput.value;
+
+            fetch(`/device/update_name?mac_address=${encodeURIComponent(macAddress)}&new_name=${encodeURIComponent(newName)}`)
+              .then(response => response.text())
+              .then(data => {
+                    if (data === 'success') {
+                        const deviceNameElement = document.getElementById(`device_name_${macAddress}`);
+                        deviceNameElement.textContent = newName;
+                        cancelEdit(macAddress);
+                    } else {
+                        alert('保存失败，请稍后重试');
+                    }
+                });
+        }
+
+        function cancelEdit(macAddress) {
+            const deviceNameElement = document.getElementById(`device_name_${macAddress}`);
+            const newNameInput = document.getElementById(`new_name_${macAddress}`);
+            const saveButton = document.querySelector(`[onclick="saveDeviceName('${macAddress}')"]`);
+            const cancelButton = document.querySelector(`[onclick="cancelEdit('${macAddress}')"]`);
+            const editButton = document.querySelector(`[onclick="editDeviceName('${macAddress}')"]`);
+
+            deviceNameElement.style.display = 'inline';
+            newNameInput.style.display = 'none';
+            saveButton.style.display = 'none';
+            cancelButton.style.display = 'none';
+            editButton.style.display = 'inline';
+        }
+    </script>
+{% endblock %}

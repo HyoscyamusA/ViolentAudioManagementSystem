@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>音频处理</title>
+</head>
+<body>
+    <h1>音频文件上传</h1>
+    <input type="file" id="audioFile" accept="audio/*">
+    <button onclick="uploadAudio()">上传并处理</button>
+    <div id="result"></div>
+
+    <script>
+        async function uploadAudio() {
+            const fileInput = document.getElementById('audioFile');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('请选择一个音频文件！');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('audio', file);
+
+            try {
+                const response = await fetch('/process', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    document.getElementById('result').innerText = '处理结果: ' + result.message;
+                } else {
+                    document.getElementById('result').innerText = '处理失败';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('result').innerText = '处理失败';
+            }
+        }
+    </script>
+</body>
+</html>

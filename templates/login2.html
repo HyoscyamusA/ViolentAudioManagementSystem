@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>暴力事件管理系统</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563eb',
+                        secondary: '#1e40af'
+                    },
+                    borderRadius: {
+                        'none': '0px',
+                        'sm': '2px',
+                        DEFAULT: '4px',
+                        'md': '8px',
+                        'lg': '12px',
+                        'xl': '16px',
+                        '2xl': '20px',
+                        '3xl': '24px',
+                        'full': '9999px',
+                        'button': '4px'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            min-height: 1024px;
+            background: linear-gradient(135deg, #1a237e 0%, #0d47a1 100%);
+            overflow: hidden;
+        }
+        
+        #particleCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .login-container {
+            position: relative;
+            z-index: 2;
+        }
+
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .input-group input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #2563eb;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .input-group i {
+            color: rgba(255, 255, 255, 0.7);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center">
+    <canvas id="particleCanvas"></canvas>
+    
+    <div class="login-container w-[440px] p-10 glass-effect rounded-xl">
+        <div class="mb-8 text-center">
+            <h1 class="text-3xl font-bold text-white mb-2">暴力事件管理系统</h1>
+            <p class="text-gray-300">安全管理 · 实时监控 · 智能预警</p>
+        </div>
+        
+        <form class="space-y-6">
+            <div class="input-group relative">
+                <div class="absolute left-4 top-1/2 transform -translate-y-1/2">
+                    <i class="fas fa-user text-lg flex justify-center items-center w-5 h-5"></i>
+                </div>
+                <input type="text" placeholder="请输入用户名" class="w-full px-12 py-4 rounded-lg text-sm" required>
+            </div>
+            
+            <div class="input-group relative">
+                <div class="absolute left-4 top-1/2 transform -translate-y-1/2">
+                    <i class="fas fa-lock text-lg flex justify-center items-center w-5 h-5"></i>
+                </div>
+                <input type="password" placeholder="请输入密码" class="w-full px-12 py-4 rounded-lg text-sm" required>
+                <div class="absolute right-4 top-1/2 transform -translate-y-1/2 cursor-pointer">
+                    <i class="fas fa-eye text-lg flex justify-center items-center w-5 h-5"></i>
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-between text-sm">
+                <label class="flex items-center text-gray-300">
+                    <input type="checkbox" class="mr-2 w-4 h-4 rounded border-none bg-blue-600">
+                    记住密码
+                </label>
+                <a href="#" class="text-gray-300 hover:text-white">忘记密码？</a>
+            </div>
+            
+            <button type="submit" class="w-full py-4 bg-primary hover:bg-secondary transition-colors duration-300 text-white font-medium rounded-button">
+                登录系统
+            </button>
+        </form>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        const particles = [];
+        const particleCount = 100;
+        
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 1;
+                this.speedX = Math.random() * 2 - 1;
+                this.speedY = Math.random() * 2 - 1;
+            }
+            
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                
+                if (this.x > canvas.width) this.x = 0;
+                if (this.x < 0) this.x = canvas.width;
+                if (this.y > canvas.height) this.y = 0;
+                if (this.y < 0) this.y = canvas.height;
+            }
+            
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.fill();
+            }
+        }
+        
+        for (let i = 0; i < particleCount; i++) {
+            particles.push(new Particle());
+        }
+        
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            for (const particle of particles) {
+                particle.update();
+                particle.draw();
+            }
+            
+            requestAnimationFrame(animate);
+        }
+        
+        animate();
+        
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        document.querySelector('.fa-eye').addEventListener('click', function() {
+            const passwordInput = document.querySelector('input[type="password"]');
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                this.classList.remove('fa-eye');
+                this.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                this.classList.remove('fa-eye-slash');
+                this.classList.add('fa-eye');
+            }
+        });
+    </script>
+</body>
+</html>

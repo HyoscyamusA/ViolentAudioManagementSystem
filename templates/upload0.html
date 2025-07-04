@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}音频分析{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">音频上传分析</h2>
+    
+    <!-- 上传表单 -->
+    <div class="card shadow">
+        <div class="card-body">
+            <form id="uploadForm" onsubmit="return false">
+                <div class="mb-3">
+                    <label class="form-label">选择音频文件（支持WAV/MP3）</label>
+                    <input type="file" class="form-control" id="audioFile" accept=".wav,.mp3" required>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-upload me-2"></i>上传并分析
+                </button>
+            </form>
+        </div>
+    </div>
+    <!-- 结果显示 -->
+    <div class="row mt-4">
+        <!-- 概率图表 -->
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h5 class="card-title">暴力事件概率</h5>
+                    <canvas id="probabilityChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <!-- 波形图和结论 -->
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h5 class="card-title">音频波形</h5>
+                    <div id="waveform"></div>
+                </div>
+            </div>
+            <!-- 判定结果 -->
+            <div class="card shadow mt-4">
+                <div class="card-body">
+                    <h5 class="card-title">分析结论</h5>
+                    <div id="violenceResult" class="display-4 text-center"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- 依赖库 -->
+<!-- 依赖库 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/wavesurfer.js@6"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+<script src="https://unpkg.com/wavesurfer.js@6"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+<script>
+// ================= 初始化波形图 =================
+const wavesurfer = WaveSurfer.create({
+    container: '#waveform',
+    waveColor: '#4a90e2',
+    progressColor: '#2c3e50',
+    cursorColor: '#e74c3c',
+    height: 150
+})
+
+// ================= 初始化概率图表 =================
+const probChart = new Chart(document.getElementById('probabilityChart'), {
+    type: 'doughnut',
+    data: {
+        labels: ['暴力概率', '非暴力概率'],
+        datasets: [{
+            data: [0, 0],
+            backgroundColor: ['#ff6384', '#36a2eb']
+        }]
+    }
+})
+
+// ================= 处理表单提交 =================
+document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+    e.preventDefault() // 阻止页面刷新
+    const file = document.getElementById('audioFile').files[0]
+    
+    if (!file) {
+        alert('请先选择文件')
+        return
+    }
+
+    try {
+        // 加载本地音频到波形图
+        wavesurfer.loadBlob(file)
+
+        // 创建上传数据
+        const formData = new FormData()
+        formData.append('audio_file', file)
+
+        // 显示加载状态
+        const btn = document.querySelector('button[type="submit"]')
+        btn.disabled = true
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>分析中...'
+
+        // 发送请求
+        const response = await fetch('/upload_audio', {
+            method: 'POST',
+            body: formData
+        })
+        
+        const result = await response.json()
+
+        // 更新概率图表
+        probChart.data.datasets[0].data = [
+            result.probability * 100,
+            result.non_violence_probability * 100
+        ]
+        probChart.update()
+
+        // 根据概率判断是否为暴力事件
+        const isViolent = result.probability > 0.5;
+
+        // 显示判定结果
+        const resultEl = document.getElementById('violenceResult')
+        resultEl.textContent = isViolent ? '⚠️ 暴力事件' : '✅ 非暴力事件'
+        resultEl.style.color = isViolent ? '#dc3545' : '#28a745'
+
+    } catch (error) {
+        alert(`分析失败: ${error.message}`)
+    } finally {
+        const btn = document.querySelector('button[type="submit"]')
+        btn.disabled = false
+        btn.innerHTML = '<i class="fas fa-upload me-2"></i>上传并分析'
+    }
+})
+</script>
+<style>
+#violenceResult {
+    font-size: 2rem;
+    font-weight: bold;
+    padding: 20px;
+}
+</style>
+{% endblock %}

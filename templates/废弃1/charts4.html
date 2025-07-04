@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>图表分析</title>
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(45deg, #0D47A1, #1976D2);
+      color: white;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-y: auto;
+    }
+
+    .nav {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .nav button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-radius: 50px;
+      font-size: 16px;
+      transition: all 0.3s ease;
+    }
+
+    .nav button:hover {
+      background-color: #388E3C;
+      transform: scale(1.05);
+    }
+
+    .chart-container {
+      width: 80%;
+      max-width: 1200px;
+      margin-top: 80px;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    #heatmap {
+      width: 100%;
+      height: 500px;
+      margin-top: 20px;
+      border-radius: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="nav">
+    <button onclick="window.location.href='index.html'">上传页面</button>
+    <button onclick="window.location.href='charts.html'">图表页面</button>
+  </div>
+
+  <div class="chart-container">
+    <h2>暴力事件概率趋势</h2>
+    <canvas id="trend-chart"></canvas>
+  </div>
+
+  <div class="chart-container">
+    <h2>暴力事件分布热力图</h2>
+    <div id="heatmap"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const response = await fetch('http://127.0.0.1:5000/api/heatmap_data');
+        const records = await response.json();
+        console.log(records);  // 打印返回的数据，检查是否有内容
+
+        // 如果数据为空，提示用户
+        if (records.length === 0) {
+          alert("没有暴力事件数据可用");
+        }
+
+        // 渲染折线图
+        const trendCtx = document.getElementById('trend-chart').getContext('2d');
+        new Chart(trendCtx, {
+          type: 'line',
+          data: {
+            labels: records.map(r => r.date),  // 使用date字段
+            datasets: [{
+              label: '暴力事件概率',
+              data: records.map(r => r.violent_prob),  // 使用violent_prob字段
+              borderColor: '#FF5722',
+              fill: false
+            }]
+          },
+          options: {
+            responsive: true,
+            scales: {
+              y: { beginAtZero: true, max: 1 }
+            }
+          }
+        });
+
+        // 处理日历热力图数据，确保日期格式为 'YYYY-MM-DD'
+        const heatData = records.map(r => ({
+          date: r.date,
+          value: r.violent_prob
+        }));
+
+        // 将数据格式化为 Plotly 热力图所需的结构
+        const dates = heatData.map(d => d.date);
+        const values = heatData.map(d => d.value);
+
+        // 获取年份和月份来构建横纵坐标
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+        const x = [];
+        const y = [];
+        const z = [];
+
+        // 按日期将数据添加到对应的日期行列
+        dates.forEach((date, i) => {
+          const [year, month, day] = date.split('-');  // 提取年月日
+          const monthIndex = parseInt(month) - 1;  // 0-11
+          const dayOfWeek = new Date(date).getDay();  // 0-6 (Sun-Sat)
+          const dayIndex = daysOfWeek.indexOf(daysOfWeek[dayOfWeek]);
+
+          x.push(months[monthIndex]);
+          y.push(daysOfWeek[dayOfWeek]);
+          z.push(values[i]);
+        });
+
+        const calendarData = {
+          type: 'heatmap',
+          x: x, // 月份
+          y: y, // 星期
+          z: z, // 暴力事件的概率
+          colorscale: 'Viridis',
+          colorbar: { title: '暴力概率' }
+        };
+
+        const layout = {
+          title: '暴力事件分布热力图',
+          xaxis: { title: '月份' },
+          yaxis: { title: '星期' },
+          height: 500
+        };
+
+        Plotly.newPlot('heatmap', [calendarData], layout);
+
+      } catch (error) {
+        console.error('获取热力图数据失败', error);
+      }
+    });
+  </script>
+</body>
+</html>

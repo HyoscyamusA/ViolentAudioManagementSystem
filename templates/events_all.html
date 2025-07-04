@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}所有报警记录{% endblock %}
+{% block content %}
+    <h1>所有报警记录</h1>
+    <!-- 筛选表单 -->
+    <form method="get" style="margin-bottom: 20px;">
+        <label>
+            开始时间：
+            <input type="date" name="start_date">
+        </label>
+        <label style="margin-left: 20px;">
+            结束时间：
+            <input type="date" name="end_date">
+        </label>
+        <label style="margin-left: 20px;">
+            设备 MAC：
+            <input type="text" name="device_mac">
+        </label>
+        <button type="submit" style="margin-left: 20px;">筛选</button>
+    </form>
+
+    <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+        <thead>
+            <tr style="background-color: #f2f2f2; border-bottom: 2px solid #ddd;">
+                <th style="padding: 12px; text-align: left;">报警时间</th>
+                <th style="padding: 12px; text-align: left;">设备 MAC</th>
+                <th style="padding: 12px; text-align: left;">设备名（地区）</th>
+                {% if role == 'admin' %}
+                    <th style="padding: 12px; text-align: left;">所属用户</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in records %}
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 10px; border-right: 1px solid #eee;">
+                    {{ record.event_datetime }}
+                </td>
+                <td style="padding: 10px; border-right: 1px solid #eee;">
+                    {{ record.mac_address }}
+                </td>
+                <td style="padding: 10px; border-right: 1px solid #eee;">
+                    {{ record.device_name }}
+                </td>
+                {% if role == 'admin' %}
+                    <td style="padding: 10px;">
+                        {{ record.username }}
+                    </td>
+                {% endif %}
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="3{% if role == 'admin' %}4{% endif %}" style="padding: 20px; text-align: center;">暂无报警记录</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

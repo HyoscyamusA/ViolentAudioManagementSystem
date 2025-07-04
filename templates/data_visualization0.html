@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+{% block title %}数据可视化{% endblock %}
+{% block content %}
+<div class="chart-container">
+    <!-- 设备出现次数趋势折线图 -->
+    <div class="chart-card">
+        <h4 class="mb-4">设备出现次数趋势折线图</h4>
+        <div id="lineChart" style="height: 400px;"></div>
+        <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.2/dist/echarts.min.js"></script>
+        <script>
+            const lineChart = echarts.init(document.getElementById('lineChart'));
+            fetch('/api/line_chart_data')  // 使用相对路径
+            .then(response => response.json())
+            .then(records => {
+                const dates = Object.keys(records).sort();
+                if (dates.length === 0) return;
+
+                // 构建设备ID和名称映射
+                const deviceMap = {};
+                dates.forEach(dateStr => {
+                    Object.entries(records[dateStr]).forEach(([deviceId, data]) => {
+                        deviceMap[deviceId] = {
+                            device_id: deviceId,
+                            device_name: data.device_name || '未命名设备',
+                            total_count: 0
+                        };
+                        deviceMap[deviceId].total_count += data.event_count;
+                    });
+                });
+
+                const firstDate = new Date(dates[0]);
+                const lastDate = new Date(dates[dates.length - 1]);
+                const monthDiff = (lastDate.getFullYear() - firstDate.getFullYear()) * 12 + (lastDate.getMonth() - firstDate.getMonth()) + 1;
+
+                let processedData = {};
+                let labels = [];
+                const useQuarterly = monthDiff > 8;  // 判断是否按季度显示
+
+                if (useQuarterly) {
+                    processedData = {};
+                    dates.forEach(dateStr => {
+                        const date = new Date(dateStr);
+                        const year = date.getFullYear();
+                        const quarter = Math.floor(date.getMonth() / 3) + 1;
+                        const quarterKey = `${year}-Q${quarter}`;
+                        if (!labels.includes(quarterKey)) labels.push(quarterKey);
+                        Object.entries(records[dateStr]).forEach(([deviceId, data]) => {
+                            if (!processedData[deviceId]) processedData[deviceId] = {};
+                            processedData[deviceId][quarterKey] = (processedData[deviceId][quarterKey] || 0) + data.event_count;
+                        });
+                    });
+                } else if (monthDiff > 5) {
+                    processedData = {};
+                    dates.forEach(dateStr => {
+                        const date = new Date(dateStr);
+                        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                        if (!labels.includes(monthKey)) labels.push(monthKey);
+                        Object.entries(records[dateStr]).forEach(([deviceId, data]) => {
+                            if (!processedData[deviceId]) processedData[deviceId] = {};
+                            processedData[deviceId][monthKey] = (processedData[deviceId][monthKey] || 0) + data.event_count;
+                        });
+                    });
+                } else {
+                    labels = dates;
+                    dates.forEach(dateStr => {
+                        Object.entries(records[dateStr]).forEach(([deviceId, data]) => {
+                            if (!processedData[deviceId]) processedData[deviceId] = {};
+                            processedData[deviceId][dateStr] = data.event_count;
+                        });
+                    });
+                }
+
+                // 计算设备总次数并排序
+                const deviceTotalCounts = {};
+                Object.keys(processedData).forEach(deviceId => {
+                    let totalCount = 0;
+                    labels.forEach(label => {
+                        totalCount += processedData[deviceId][label] || 0;
+                    });
+                    deviceTotalCounts[deviceId] = totalCount;
+                });
+
+                const sortedDevices = Object.entries(deviceTotalCounts).sort((a, b) => b[1] - a[1]);
+                const topThreeDevices = sortedDevices.slice(0, 3).map(([deviceId]) => ({
+                    device_id: deviceId,
+                    device_name: deviceMap[deviceId].device_name
+                }));
+
+                const datasets = Object.keys(processedData).map(deviceId => ({
+                    name: `设备ID: ${deviceId} - 名称: ${deviceMap[deviceId].device_name}`,  // 同时显示ID和名称
+                    type: 'line',
+                    data: labels.map(label => processedData[deviceId][label] || 0),
+                    lineStyle: {
+                        width: topThreeDevices.some(d => d.device_id === deviceId) ? 6 : 1
+                    }
+                }));
+
+                const option = {
+                    xAxis: {
+                        type: 'category',
+                        data: labels,
+                        axisLabel: {
+                            rotate: useQuarterly || (monthDiff > 5)? 0 : 90,
+                            formatter: useQuarterly? (value) => value : (monthDiff > 5)? (value) => value.split('-')[1] : undefined
+                        },
+                        name: '时间'
+                    },
+                    yAxis: {
+                        type: 'value',
+                        name: '设备上传次数',
+                        min: 0,
+                        interval: 1,
+                        axisLabel: {
+                            formatter: function (value) {
+                                return Math.floor(value);
+                            }
+                        },
+                        splitLine: { show: true }
+                    },
+                    series: datasets
+                };
+                lineChart.setOption(option);
+
+                const chartContainer = document.getElementById('lineChart').closest('.chart-container');
+                const warningBox = document.createElement('div');
+                warningBox.classList.add('warning-box');
+                let warningText = '报警次数前三的设备：';
+                topThreeDevices.forEach(({ device_id, device_name }, index) => {
+                    warningText += `${index + 1}. 设备ID: ${device_id} - 名称: ${device_name} `;  // 同时显示ID和名称
+                });
+                warningBox.textContent = warningText;
+                chartContainer.appendChild(warningBox);
+            });
+        </script>
+    </div>
+
+    <!-- 暴力事件分布热力图 -->
+    <div class="chart-card">
+        <h4 class="mb-4">暴力事件分布热力图</h4>
+        <select id="device-select"></select>
+        <div id="heatmapChart" style="height: 400px;"></div>
+        <script>
+            const heatmapChart = echarts.init(document.getElementById('heatmapChart'));
+        
+            async function fetchDevices() {
+                try {
+                    const response = await fetch('/api/devices');
+                    const devices = await response.json();
+                    const deviceSelect = document.getElementById('device-select');
+                    
+                    // 清空原有选项
+                    deviceSelect.innerHTML = '';
+                    
+                    devices.forEach(device => {
+                        const option = document.createElement('option');
+                        option.value = device.device_id;
+                        option.textContent = `设备ID: ${device.device_id} - 名称: ${device.device_name || '未命名设备'}`;
+                        deviceSelect.appendChild(option);
+                    });
+        
+                    deviceSelect.addEventListener('change', updateHeatmap);
+        
+                    if (devices.length > 0) {
+                        deviceSelect.value = devices[0].device_id;
+                        updateHeatmap();
+                    }
+        
+                } catch (error) {
+                    console.error('获取设备列表失败', error);
+                }
+            }
+        
+            async function updateHeatmap() {
+                const deviceId = document.getElementById('device-select').value;
+                try {
+                    const response = await fetch(`/api/heatmap_data?device_id=${deviceId}`);
+                    const records = await response.json();
+        
+                    if (!records || records.length === 0) {
+                        console.error('没有获取到有效数据');
+                        return;
+                    }
+        
+                    const monthNames = ['1月', '2月', '3月', '4月', '5月', '6月',
+                                        '7月', '8月', '9月', '10月', '11月', '12月'];
+                    const days = Array.from({ length: 31 }, (_, i) => i + 1);
+        
+                    const heatmapData = monthNames.map(() => 
+                        days.map(() => ({ count: 0 }))
+                    );
+        
+                    records.forEach(record => {
+                        const month = parseInt(record.month) - 1;
+                        const day = parseInt(record.day) - 1;
+                        const count = parseInt(record.event_count);
+                        if (month >= 0 && month < 12 && day >= 0 && day < 31) {
+                            heatmapData[month][day].count = count;
+                        }
+                    });
+        
+                    const data = [];
+                    heatmapData.forEach((month, monthIndex) => {
+                        month.forEach((day, dayIndex) => {
+                            data.push([dayIndex, monthIndex, day.count]);
+                        });
+                    });
+        
+                    const option = {
+                        xAxis: {
+                            type: 'category',
+                            data: days,
+                            name: '日期'
+                        },
+                        yAxis: {
+                            type: 'category',
+                            data: monthNames,
+                            name: '月份'
+                        },
+                        visualMap: {
+                            min: 0,
+                            max: Math.max(...data.map(item => item[2])),
+                            calculable: true,
+                            orient: 'horizontal',
+                            left: 'center'
+                        },
+                        series: [{
+                            type: 'heatmap',
+                            data: data
+                        }]
+                    };
+                    heatmapChart.setOption(option);
+        
+                } catch (error) {
+                    console.error('获取热力图数据失败', error);
+                }
+            }
+        
+            fetchDevices();
+        </script>
+    </div>
+</div>
+{% endblock %}

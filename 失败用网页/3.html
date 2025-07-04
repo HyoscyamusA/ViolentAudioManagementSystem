@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音频上传与暴力事件预测</title>
+
+    <!-- 内嵌CSS样式 -->
+    <style>
+        /* styles.css */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 400px;
+            max-width: 100%;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .upload-section {
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-size: 16px;
+            margin-right: 10px;
+        }
+
+        input[type="file"] {
+            padding: 5px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #result {
+            font-size: 18px;
+            margin-top: 20px;
+        }
+
+        #error-message {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>音频上传与暴力事件预测</h1>
+
+        <!-- 文件上传表单 -->
+        <form id="upload-form" enctype="multipart/form-data">
+            <div class="upload-section">
+                <label for="audio-file">选择音频文件：</label>
+                <input type="file" id="audio-file" name="audio-file" accept="audio/*" required>
+            </div>
+
+            <button type="submit">上传音频并预测</button>
+        </form>
+
+        <!-- 显示预测结果 -->
+        <div id="result" style="display: none;">
+            <p>暴力事件的预测概率：<span id="probability">-</span>%</p>
+        </div>
+
+        <!-- 显示错误信息 -->
+        <div id="error-message" style="display: none;">
+            <p style="color: red;">上传失败，请稍后再试！</p>
+        </div>
+    </div>
+
+    <!-- 内嵌JavaScript代码 -->
+    <script>
+        // script.js
+        document.getElementById('upload-form').addEventListener('submit', async function (event) {
+            event.preventDefault();
+
+            const fileInput = document.getElementById('audio-file');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert('请先选择一个音频文件');
+                return;
+            }
+
+            // 隐藏错误消息和结果
+            document.getElementById('error-message').style.display = 'none';
+            document.getElementById('result').style.display = 'none';
+
+            // 显示加载状态
+            document.getElementById('probability').textContent = '处理中...';
+
+            // 创建FormData对象以发送音频文件
+            const formData = new FormData();
+            formData.append('audio-file', file);
+
+            try {
+                // 向后端发送POST请求
+                const response = await fetch('/upload-audio', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    throw new Error('服务器响应错误');
+                }
+
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                // 显示预测结果
+                document.getElementById('result').style.display = 'block';
+                document.getElementById('probability').textContent = (data.probability * 100).toFixed(2);
+            } catch (error) {
+                console.error('上传失败:', error);
+                // 显示错误消息
+                document.getElementById('error-message').style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

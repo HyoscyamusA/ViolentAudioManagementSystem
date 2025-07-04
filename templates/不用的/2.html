@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>音频上传与预测</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background-color: #f9f9f9;
+      margin-top: 50px;
+    }
+    
+    .container {
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      display: inline-block;
+    }
+    .container input[type="file"] {
+      margin-bottom: 10px;
+    }
+    .container button {
+      background-color: #28a745;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-radius: 5px;
+      transition: background-color 0.3s;
+    }
+    .container button:disabled {
+      background-color: #6c757d;
+      cursor: not-allowed;
+    }
+    .container button:hover:not(:disabled) {
+      background-color: #218838;
+    }
+    .error {
+      color: #dc3545;
+      margin-top: 10px;
+    }
+    .success {
+      color: #28a745;
+      margin-top: 10px;
+    }
+    @keyframes dots {
+      0%, 20% { content: ''; }
+      40% { content: '.'; }
+      60% { content: '..'; }
+      80%,100% { content: '...'; }
+    }
+    .loading::after {
+      content: '';
+      animation: dots 1s infinite;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>音频上传与暴力事件预测</h1>
+    <div id="upload-area">
+      <label for="audio-file">选择音频文件：</label>
+      <input type="file" id="audio-file" name="file" accept=".wav" required />
+      <br />
+      <button type="button" id="upload-btn">上传音频并预测</button>
+    </div>
+    <p id="result"></p>
+  </div>
+  <script>
+    // 状态管理
+    let isUploading = false;
+    let isResultShown = false;
+    const uploadButton = document.getElementById('upload-btn');
+    const resultElement = document.getElementById('result');
+    const fileInput = document.getElementById('audio-file');
+
+    // 智能页面离开保护
+    window.onbeforeunload = (e) => {
+      if (isUploading) {
+        e.preventDefault();
+        return "文件正在分析中，离开可能导致操作中断！";
+      }
+      if (isResultShown) {
+        e.preventDefault();
+        return "分析结果尚未保存，刷新将丢失数据！";
+      }
+    };
+
+    // 显示结果函数
+    const showResult = (message, isSuccess) => {
+      resultElement.textContent = message;
+      resultElement.className = isSuccess ? 'success' : 'error';
+      isResultShown = true;
+      
+      // 15秒后自动解除保护
+      setTimeout(() => {
+        isResultShown = false;
+        console.log('结果保护已解除');
+      }, 15000);
+    };
+
+    // 完整的重置函数
+    const resetState = () => {
+      uploadButton.disabled = false;
+      uploadButton.textContent = '开始分析';
+      uploadButton.classList.remove('loading');
+      isUploading = false;
+      console.log('所有状态已重置');
+    };
+
+    // 文件上传处理
+    uploadButton.addEventListener('click', async () => {
+      try {
+        // 初始化状态
+        const file = fileInput.files[0];
+        if (!file) {
+          showResult('请先选择音频文件！', false);
+          return;
+        }
+
+        // 设置加载状态
+        isUploading = true;
+        uploadButton.disabled = true;
+        uploadButton.textContent = '分析中...';
+        uploadButton.classList.add('loading');
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        // 发送请求
+        const response = await fetch('http://127.0.0.1:5000/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        // 处理响应
+        if (!response.ok) {
+          throw new Error(`HTTP错误! 状态码: ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (data.probability === undefined) {
+          throw new Error('无效的响应格式');
+        }
+
+        showResult(`预测结果：${(data.probability * 100).toFixed(1)}%`, true);
+
+      } catch (error) {
+        console.error('上传错误:', error);
+        showResult(`处理失败: ${error.message}`, false);
+      } finally {
+        resetState();
+      }
+    });
+
+    // 文件选择重置
+    fileInput.addEventListener('change', () => {
+      resultElement.textContent = '';
+      resultElement.className = '';
+      isResultShown = false;
+      console.log('文件已变更，重置状态');
+    });
+  </script>
+</body>
+</html>

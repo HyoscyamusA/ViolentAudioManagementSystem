@@ -1,0 +1,116 @@
+<!-- templates/login.html -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>暴力检测系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0066CC',
+                        secondary: '#2D3748'
+                    },
+                    borderRadius: {
+                        'none': '0px',
+                        'sm': '2px',
+                        DEFAULT: '4px',
+                        'md': '8px',
+                        'lg': '12px',
+                        'xl': '16px',
+                        '2xl': '20px',
+                        '3xl': '24px',
+                        'full': '9999px',
+                        'button': '4px'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            min-height: 1024px;
+            background-color: #f8fafc;
+        }
+        .login-bg {
+            background-image: url('https://ai-public.mastergo.com/ai/img_res/182b0539915671790d7e8153b2b0aec8.jpg');
+            background-size: cover;
+            background-position: center;
+        }
+        input:-webkit-autofill {
+            -webkit-box-shadow: 0 0 0 30px white inset !important;
+        }
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="w-[1440px] min-h-[1024px] mx-auto flex">
+        <div class="login-bg w-3/5 relative">
+            <div class="absolute inset-0 bg-black bg-opacity-40 backdrop-blur-sm"></div>
+            <div class="relative z-10 p-16 text-white">
+                <h1 class="font-['Pacifico'] text-4xl mb-8">logo</h1>
+                <div class="mt-32">
+                    <h2 class="text-5xl font-bold mb-6">智能暴力检测系统</h2>
+                    <p class="text-xl opacity-90 leading-relaxed">
+                        基于深度学习的智能识别系统<br>
+                        实时监控 · 快速响应 · 精准预警
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="w-2/5 flex items-center justify-center bg-white">
+            <div class="w-[400px]">
+                <div class="text-center mb-12">
+                    <h2 class="text-2xl font-bold text-gray-800">系统登录</h2>
+                    <p class="text-gray-500 mt-2">请输入您的账号信息</p>
+                </div>
+                
+                <form class="space-y-6" action="{{ url_for('login') }}" method="post">
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <i class="fas fa-user text-gray-400"></i>
+                        </div>
+                        <input type="text" name="username" class="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-button focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" placeholder="请输入用户名">
+                    </div>
+                    
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <i class="fas fa-lock text-gray-400"></i>
+                        </div>
+                        <input type="password" name="password" class="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-button focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" placeholder="请输入密码">
+                    </div>
+                    <!----
+                    <div class="flex items-center justify-between">
+                        <label class="flex items-center">
+                            <input type="checkbox" class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+                            <span class="ml-2 text-sm text-gray-600">记住密码</span>
+                        </label>
+                        <a href="#" class="text-sm text-primary hover:text-primary/80">忘记密码？</a>
+                    </div>
+                    --->
+                    <button type="submit" class="w-full bg-primary text-white py-3 rounded-button hover:bg-primary/90 transition-colors duration-200 !rounded-button whitespace-nowrap">
+                        登 录
+                    </button>
+                </form>
+                <!--
+                <div class="mt-8 text-center text-sm text-gray-500">
+                    <p>系统管理员：0755-88888888</p>
+                    <p class="mt-1">工作时间：周一至周五 9:00-18:00</p>
+                </div>-->
+            </div>
+        </div>
+    </div>
+</body>
+</html>

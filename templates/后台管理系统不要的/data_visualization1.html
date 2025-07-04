@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+{% block title %}数据可视化{% endblock %}
+{% block content %}
+<div class="chart-container">
+    <!-- 设备出现次数趋势折线图 -->
+    <div class="chart-card">
+        <h4 class="mb-4">设备出现次数趋势折线图</h4>
+        <div id="lineChart" style="height: 400px;"></div>
+        <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.2/dist/echarts.min.js"></script>
+        <script>
+            const lineChart = echarts.init(document.getElementById('lineChart'));
+            fetch('http://127.0.0.1:5000/api/line_chart_data')
+               .then(response => response.json())
+               .then(records => {
+                    // 提取所有日期并排序
+                    const dates = Object.keys(records).sort();
+                    if (dates.length === 0) return;
+
+                    // 计算时间范围（单位：月）
+                    const firstDate = new Date(dates[0]);
+                    const lastDate = new Date(dates[dates.length - 1]);
+                    const monthDiff = (lastDate.getFullYear() - firstDate.getFullYear()) * 12
+                        + (lastDate.getMonth() - firstDate.getMonth()) + 1;
+
+                    let processedData = {};
+                    let labels = [];
+                    const useMonthly = monthDiff > 5; // 超过5个月时切换为月显示
+
+                    if (useMonthly) {
+                        // 按月聚合数据
+                        processedData = {};
+                        dates.forEach(dateStr => {
+                            const date = new Date(dateStr);
+                            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+                            if (!labels.includes(monthKey)) labels.push(monthKey);
+
+                            Object.entries(records[dateStr]).forEach(([deviceId, data]) => {
+                                if (!processedData[deviceId]) processedData[deviceId] = {};
+                                processedData[deviceId][monthKey] = (processedData[deviceId][monthKey] || 0) + data.event_count;
+                            });
+                        });
+                    } else {
+                        // 保持原始日期数据
+                        labels = dates;
+                        dates.forEach(dateStr => {
+                            Object.entries(records[dateStr]).forEach(([deviceId, data]) => {
+                                if (!processedData[deviceId]) processedData[deviceId] = {};
+                                processedData[deviceId][dateStr] = data.event_count;
+                            });
+                        });
+                    }
+
+                    // 计算每个设备的总报警次数
+                    const deviceTotalCounts = {};
+                    Object.keys(processedData).forEach(deviceId => {
+                        let totalCount = 0;
+                        labels.forEach(label => {
+                            totalCount += processedData[deviceId][label] || 0;
+                        });
+                        deviceTotalCounts[deviceId] = totalCount;
+                    });
+
+                    // 找出报警次数前三的设备
+                    const sortedDevices = Object.entries(deviceTotalCounts).sort((a, b) => b[1] - a[1]);
+                    const topThreeDevices = sortedDevices.slice(0, 3).map(item => item[0]);
+
+                    // 创建数据集
+                    const datasets = Object.keys(processedData).map(deviceId => {
+                        return {
+                            name: `设备ID: ${deviceId}`,
+                            type: 'line',
+                            data: labels.map(label => processedData[deviceId][label] || 0),
+                            lineStyle: {
+                                width: topThreeDevices.includes(deviceId)? 6 : 1
+                            }
+                        };
+                    });
+
+                    const option = {
+                        xAxis: {
+                            type: 'category',
+                            data: labels,
+                            axisLabel: {
+                                rotate: useMonthly? 0 : 90,
+                                formatter: useMonthly? (value) => value.split('-')[1] : undefined
+                            },
+                            name: '时间'
+                        },
+                        yAxis: {
+                            type: 'value',
+                            name: '设备上传次数',
+                            min: 0
+                        },
+                        series: datasets
+                    };
+                    lineChart.setOption(option);
+
+                    // 在图表旁边添加建议框
+                    const chartContainer = document.getElementById('lineChart').closest('.chart-container');
+                    const warningBox = document.createElement('div');
+                    warningBox.classList.add('warning-box');
+                    let warningText = 'warning:报警次数前三的设备：';
+                    topThreeDevices.forEach((deviceId, index) => {
+                        warningText += `${index + 1}. 设备ID: ${deviceId} `;
+                    });
+                    warningBox.textContent = warningText;
+                    chartContainer.appendChild(warningBox);
+                });
+        </script>
+    </div>
+
+    <!-- 暴力事件分布热力图 -->
+    <div class="chart-card">
+        <h4 class="mb-4">暴力事件分布热力图</h4>
+        <select id="device-select"></select> <!-- 下拉菜单用于选择设备 -->
+        <div id="heatmapChart" style="height: 400px;"></div>
+        <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.2/dist/echarts.min.js"></script>
+        <script>
+            const heatmapChart = echarts.init(document.getElementById('heatmapChart'));
+
+            // 获取设备列表并填充到下拉菜单中
+            async function fetchDevices() {
+                try {
+                    const response = await fetch('http://127.0.0.1:5000/api/devices');
+                    const devices = await response.json();
+                    const deviceSelect = document.getElementById('device-select');
+                    devices.forEach(device => {
+                        const option = document.createElement('option');
+                        option.value = device.device_id;
+                        option.textContent = device.device_id;
+                        deviceSelect.appendChild(option);
+                    });
+
+                    // 选择设备后更新热力图
+                    deviceSelect.addEventListener('change', updateHeatmap);
+
+                    // 默认加载第一个设备
+                    if (devices.length > 0) {
+                        deviceSelect.value = devices[0].device_id;
+                        updateHeatmap();
+                    }
+
+                } catch (error) {
+                    console.error('获取设备列表失败', error);
+                }
+            }
+
+            // 更新热力图数据
+            async function updateHeatmap() {
+                const deviceId = document.getElementById('device-select').value;
+                try {
+                    const response = await fetch(`http://127.0.0.1:5000/api/heatmap_data?device_id=${deviceId}`);
+                    const records = await response.json();
+
+                    if (!records || records.length === 0) {
+                        console.error('没有获取到有效数据');
+                        return;
+                    }
+
+                    // 创建月份-日期的二维数据矩阵
+                    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    const days = Array.from({ length: 31 }, (_, i) => i + 1);
+
+                    // 初始化所有日期为0
+                    const heatmapData = monthNames.map(month => {
+                        return days.map(day => {
+                            return { month, day, count: 0 };
+                        });
+                    });
+
+                    // 填充实际数据
+                    records.forEach(record => {
+                        const month = record.month;
+                        const day = parseInt(record.day);
+                        const count = record.event_count;
+
+                        const monthIndex = monthNames.indexOf(monthNames[parseInt(month) - 1]);
+                        if (monthIndex!== -1 && day >= 1 && day <= 31) {
+                            heatmapData[monthIndex][day - 1].count += count;
+                        }
+                    });
+
+                    // 转换为ECharts需要的格式
+                    const data = [];
+                    heatmapData.forEach((monthData, monthIndex) => {
+                        monthData.forEach((dayData, dayIndex) => {
+                            data.push([dayIndex, monthIndex, dayData.count]);
+                        });
+                    });
+
+                    const option = {
+                        xAxis: {
+                            type: 'category',
+                            data: days,
+                            axisLabel: {
+                                interval: 1
+                            },
+                            name: '日期'
+                        },
+                        yAxis: {
+                            type: 'category',
+                            data: monthNames,
+                            name: '月份'
+                        },
+                        visualMap: {
+                            min: 0,
+                            max: Math.max(...data.map(item => item[2])),
+                            calculable: true,
+                            orient: 'horizontal',
+                            left: 'center'
+                        },
+                        series: [{
+                            type: 'heatmap',
+                            data: data
+                        }]
+                    };
+                    heatmapChart.setOption(option);
+
+                } catch (error) {
+                    console.error('获取热力图数据失败', error);
+                }
+            }
+
+            // 初始化
+            fetchDevices();
+        </script>
+    </div>
+</div>
+{% endblock %}

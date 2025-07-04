@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}音频日志管理{% endblock %}
+{% block content %}
+<div class="container">
+    <h2 class="my-4">音频日志列表（共 {{ files | length }} 个文件）</h2>
+    
+    <table class="table table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>文件名</th>
+                <th>大小</th>
+                <th>修改时间</th>
+                <th>播放</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for file in files %}
+            <tr>
+                <td>{{ file.name }}</td>
+                <td>{{ file.size }}</td>
+                <td>{{ file.modified }}</td>
+                <td>
+                    <audio controls style="height: 30px;">
+                        <source 
+                            src="{{ url_for('admin_serve_audio', path=file.path) }}" 
+                            type="audio/wav">
+                        不支持播放
+                    </audio>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4" class="text-center">未找到音频文件</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

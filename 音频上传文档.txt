@@ -1,0 +1,15 @@
+后端部分：
+1.（23行-42行初始化应用-音频特征提取）
+	原先interfere_demo部分初始化代码
+2.isViolent函数
+	同上，也是interfere_demo部分的代码，避免在服务器中再次上传interfere_demo文件将其
+	集成在后端程序中。
+3.@app.route('/audio/upload')路由
+	在点击侧边栏时，通过路由跳转到音频上传界面（upload.html）
+4.@app.route('/upload_audio', methods=['POST'])
+	接收文件并且验证格式，保存文件在文件夹下，并且利用isViloent函数进行处理
+5.@app.route('/audio/files/<path:filename>')
+音频播放功能，如果音频不存储在uploads文件夹下目前想不到别的办法让音频文件在不保存的情况下播放
+
+6.@app.route('/admin/audio_logs')
+Ai生成的，当时递交给ai的思路是，读取保存在logs文件夹下的wav文件，并且按照日期显示出来

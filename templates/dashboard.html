@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}首页欢迎界面{% endblock %}
+{% block content %}
+<div class="dashboard-container" style="display: flex; gap: 20px; padding: 20px;">
+    <!-- 左侧欢迎信息区域 -->
+    <div class="welcome-section" style="flex: 1; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+        <h2 class="mb-4">欢迎界面</h2>
+        <p style="font-size: 1.2rem; line-height: 1.6;">
+            欢迎 {{ session.get('username', '用户') }} 进入系统！<br>
+            在这里您可以通过右侧个人中心快速访问设备管理、报警记录等功能。<br>
+            系统将为您提供高效的设备管理与安全监控服务。
+        </p>
+    </div>
+
+    <!-- 右侧个人中心 -->
+    <a href="{{ url_for('personal_center') }}" style="text-decoration: none; color: inherit;">
+        <div class="personal-center" style="width: 300px; padding: 20px; background: #f8f9fa;">
+            <div class="user-card" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+                <h3 class="mb-4">个人中心</h3>
+                <div class="user-info" style="margin-bottom: 15px;">
+                    <p style="font-weight: 500;">用户名：{{ session.get('username', '未登录用户') }}</p>
+                    <p style="color: #6c757d;">角色：{{ session.get('role', '普通用户') }}</p>
+                </div>
+                <a href="{{ url_for('device_manage') }}" class="dashboard-link" style="display: block; margin: 10px 0; color: #007bff;">
+                    <i class="fas fa-cogs" style="margin-right: 5px;"></i> 设备管理
+                </a>
+                <a href="{{ url_for('events_all') }}" class="dashboard-link" style="display: block; margin: 10px 0; color: #007bff;">
+                    <i class="fas fa-list" style="margin-right: 5px;"></i> 查看报警记录
+                </a>
+                <a href="{{ url_for('logout') }}" class="dashboard-link" style="display: block; margin: 10px 0; color: #dc3545;">
+                    <i class="fas fa-sign-out-alt" style="margin-right: 5px;"></i> 退出登录
+                </a>
+            </div>
+        </div>
+    </a>
+</div>
+
+<!-- 引入 Font Awesome 图标库（需联网加载，也可下载本地使用） -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+{% endblock %}

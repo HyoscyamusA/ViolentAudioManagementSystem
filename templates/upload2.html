@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}音频上传{% endblock %}
+{% block content %}
+    <h1>音频上传</h1>
+    
+    <!-- Flash消息 -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST" enctype="multipart/form-data" id="upload-form">
+        <div class="mb-3">
+            <label class="form-label">音频文件</label>
+            <input type="file" class="form-control" name="audio_file" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">音频名称（可选）</label>
+            <input type="text" class="form-control" name="audio_name">
+        </div>
+        <button type="submit" class="btn btn-primary">上传音频</button>
+    </form>
+
+    <!-- 概率柱状图容器 -->
+    <div class="mt-4" style="width: 100%; max-width: 600px;">
+        <canvas id="probability-chart" height="200"></canvas>
+    </div>
+
+    <!-- 波形图容器 -->
+    <div class="mt-4" style="width: 100%; max-width: 600px; height: 150px;">
+        <div id="waveform"></div>
+    </div>
+
+    <!-- 引入图表库 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/wavesurfer.js"></script>
+
+    <script>
+        // 初始化图表和波形图
+        const waveformDiv = document.getElementById('waveform');
+        const wavesurfer = WaveSurfer.create({
+            container: waveformDiv,
+            waveColor: '#4CAF50',    // 绿色
+            progressColor: '#2196F3',// 蓝色
+            cursorColor: '#FF5722', // 橙色
+            height: 150,
+            barWidth: 3
+        });
+
+        // 初始化概率图表
+        const ctx = document.getElementById('probability-chart').getContext('2d');
+        const probabilityChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['暴力概率', '非暴力概率'],
+                datasets: [{
+                    label: '概率',
+                    data: [0, 0],
+                    backgroundColor: ['rgba(255, 99, 132, 0.6)', 'rgba(54, 162, 235, 0.6)'],
+                    borderColor: ['rgba(255, 99, 132, 1)', 'rgba(54, 162, 235, 1)'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 1
+                    }
+                }
+            }
+        });
+
+        // 表单提交处理
+        document.getElementById('upload-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const file = formData.get('audio_file');
+
+            try {
+                // 显示加载状态
+                wavesurfer.empty();
+                probabilityChart.data.datasets[0].data = [0, 0];
+                probabilityChart.update();
+
+                // 发送请求
+                const response = await fetch('/upload_audio', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.message || '上传失败');
+
+                // 更新图表
+                probabilityChart.data.datasets[0].data = [
+                    data.probability,
+                    data.non_violence_probability
+                ];
+                probabilityChart.update();
+
+                // 加载波形图
+                const audioBlob = await fetch(data.audio_url).then(res => res.blob());
+                wavesurfer.loadBlob(audioBlob);
+            } catch (error) {
+                console.error('上传失败:', error);
+                alert('上传失败：' + error.message);
+            }
+        });
+    </script>
+{% endblock %}

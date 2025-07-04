@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>事件分布热力图</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-heatmap"></script>
+    <style>
+        body { background: #f0f2f5; padding: 20px; }
+        .chart-box { background: white; padding: 20px; margin: 20px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+    <h1>事件时间分布热力图</h1>
+    <div class="chart-box">
+        <canvas id="heatmap"></canvas>
+    </div>
+
+    <script>
+        fetch('/api/heatmap-data')
+            .then(res => res.json())
+            .then(data => {
+                new Chart(document.getElementById('heatmap'), {
+                    type: 'heatmap',
+                    data: {
+                        datasets: [{
+                            label: '暴力事件分布',
+                            data: data.points,
+                            backgroundColor: 'rgba(255,99,132,0.5)'
+                        }]
+                    },
+                    options: {
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    }
+                });
+            });
+    </script>
+</body>
+</html>

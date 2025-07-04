@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}音频分析{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">音频上传分析</h2>
+    
+    <!-- 上传表单 -->
+    <div class="card shadow">
+        <div class="card-body">
+            <form id="uploadForm">
+                <div class="mb-3">
+                    <label class="form-label">选择音频文件（支持WAV/MP3）</label>
+                    <input type="file" class="form-control" id="audioFile" accept=".wav,.mp3" required>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-upload me-2"></i>上传并分析
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 结果显示 -->
+    <div class="row mt-4">
+        <!-- 概率图表 -->
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h5 class="card-title">暴力事件概率</h5>
+                    <canvas id="probabilityChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 波形图 -->
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h5 class="card-title">音频波形</h5>
+                    <div id="waveform"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 依赖库 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/wavesurfer.js@6"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+
+<script>
+// 初始化波形图
+const wavesurfer = WaveSurfer.create({
+    container: '#waveform',
+    waveColor: '#4a90e2',
+    progressColor: '#2c3e50',
+    cursorColor: '#e74c3c',
+    height: 150,
+    responsive: true
+})
+
+// 初始化概率图表
+const probChart = new Chart(document.getElementById('probabilityChart'), {
+    type: 'doughnut',
+    data: {
+        labels: ['暴力概率', '非暴力概率'],
+        datasets: [{
+            data: [0, 0],
+            backgroundColor: ['#ff6384', '#36a2eb'],
+            hoverOffset: 4
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'top' },
+            tooltip: { enabled: true }
+        }
+    }
+})
+
+// 处理表单提交
+document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const fileInput = document.getElementById('audioFile')
+    const file = fileInput.files[0]
+    
+    if (!file) {
+        alert('请先选择文件')
+        return
+    }
+
+    try {
+        // 重置状态
+        wavesurfer.empty()
+        probChart.data.datasets[0].data = [0, 0]
+        probChart.update()
+
+        // 创建上传数据
+        const formData = new FormData()
+        formData.append('audio_file', file)
+
+        // 发送请求
+        const response = await fetch('/upload_audio', {
+            method: 'POST',
+            body: formData
+        })
+        
+        const result = await response.json()
+
+        if (result.status !== 'success') {
+            throw new Error(result.message || '分析失败')
+        }
+
+        // 更新图表
+        probChart.data.datasets[0].data = [
+            result.probability,
+            result.non_violence_probability
+        ]
+        probChart.update()
+
+        // 加载音频
+        wavesurfer.load(result.audio_url)
+        
+    } catch (error) {
+        console.error('上传失败:', error)
+        alert(`错误: ${error.message}`)
+    }
+})
+</script>
+{% endblock %}

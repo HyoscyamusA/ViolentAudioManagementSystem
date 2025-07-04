@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音频暴力事件检测</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        input[type="file"] {
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            color: #fff;
+            background-color: #007BFF;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .status {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>音频暴力事件检测</h1>
+        <form id="uploadForm">
+            <input type="file" id="audioFile" accept=".wav">
+            <button type="submit">上传并检测</button>
+        </form>
+        <p class="status" id="status"></p>
+        <div class="result" id="result" style="display: none;">
+            <h2>检测结果</h2>
+            <p>暴力事件概率: <span id="probability"></span></p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async (event) => {
+            event.preventDefault(); // 阻止默认表单提交行为
+
+            const fileInput = document.getElementById('audioFile');
+            const status = document.getElementById('status');
+            const result = document.getElementById('result');
+            const probabilitySpan = document.getElementById('probability');
+
+            if (!fileInput.files.length) {
+                status.textContent = '请先选择一个文件';
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('audio', file);
+
+            status.textContent = '文件上传中...';
+
+            try {
+                const response = await fetch('http://localhost:5000/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    throw new Error('文件上传失败');
+                }
+
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                status.textContent = '文件上传成功';
+                result.style.display = 'block';
+                probabilitySpan.textContent = (data.probability * 100).toFixed(2) + '%';
+            } catch (error) {
+                status.textContent = '文件上传失败: ' + error.message;
+                result.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

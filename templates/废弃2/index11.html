@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>上传页面</title>
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(45deg, #0D47A1, #1976D2);
+      color: white;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-y: auto;
+    }
+
+    .nav {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .nav button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-radius: 50px;
+      font-size: 16px;
+      transition: all 0.3s ease;
+    }
+
+    .nav button:hover {
+      background-color: #388E3C;
+      transform: scale(1.05);
+    }
+
+    .upload-container {
+      width: 80%;
+      max-width: 600px;
+      margin-top: 80px;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    input[type="file"] {
+      padding: 10px;
+      margin-bottom: 20px;
+      background-color: #1976D2;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+
+    input[type="file"]:hover {
+      background-color: #1565C0;
+    }
+
+    #status {
+      margin-top: 20px;
+      font-size: 18px;
+      color: white;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="nav">
+    <button onclick="window.location.href='index.html'">上传页面</button>
+    <button onclick="window.location.href='charts.html'">图表页面</button>
+  </div>
+
+  <div class="upload-container">
+    <h2>上传音频文件</h2>
+    <form id="uploadForm" enctype="multipart/form-data">
+      <input type="file" name="file" id="file" accept=".wav">
+      <button type="submit" id="submitBtn">上传文件</button>
+    </form>
+    <div id="status"></div>
+  </div>
+
+  <script>
+    document.getElementById("uploadForm").addEventListener("submit", async function(event) {
+      event.preventDefault();  // 防止表单默认提交，避免刷新页面
+
+      const formData = new FormData();
+      const fileInput = document.getElementById("file");
+
+      if (fileInput.files.length === 0) {
+        document.getElementById("status").textContent = "请先选择一个文件！";
+        return;
+      }
+
+      formData.append("file", fileInput.files[0]);
+
+      try {
+        const response = await fetch("http://127.0.0.1:5000/upload", {
+          method: "POST",
+          body: formData
+        });
+
+        if (!response.ok) {
+          throw new Error("上传失败！");
+        }
+
+        const data = await response.json();
+        document.getElementById("status").textContent = `上传成功！暴力事件概率：${data.violent_probability}, 非暴力事件概率：${data.non_violent_probability}`;
+      } catch (error) {
+        document.getElementById("status").textContent = `上传失败：${error.message}`;
+      }
+    });
+  </script>
+</body>
+
+</html>

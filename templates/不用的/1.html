@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>音频上传与预测</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background-color: #f9f9f9;
+      margin-top: 50px;
+    }
+    
+    .container {
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      display: inline-block;
+    }
+    .container input[type="file"] {
+      margin-bottom: 10px;
+    }
+    .container button {
+      background-color: #28a745;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    .container button:hover {
+      background-color: #218838;
+    }
+    .error {
+      color: red;
+      margin-top: 10px;
+    }
+    .success {
+      color: green;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>音频上传与暴力事件预测</h1>
+    <div id="upload-area">
+      <!-- 使用 div 代替 form，完全控制行为 -->
+      <label for="audio-file">选择音频文件：</label>
+      <input type="file" id="audio-file" name="file" accept=".wav" required />
+      <br />
+      <button type="button" id="upload-btn">上传音频并预测</button>
+    </div>
+    <p id="result"></p>
+  </div>
+  <script>
+    // 获取 DOM 元素
+    const uploadButton = document.getElementById('upload-btn');
+    const resultElement = document.getElementById('result');
+    const fileInput = document.getElementById('audio-file');
+    let isUploading = false; // 新增上传状态标志
+  
+    // 修改后的页面离开处理
+    window.onbeforeunload = function (e) {
+      if (isUploading) {
+        e.preventDefault();
+        return "文件正在上传中，确定要离开吗？";
+      }
+    };
+  
+    // 上传按钮点击事件
+    uploadButton.addEventListener('click', async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+  
+      // 新增加载状态
+      uploadButton.disabled = true;
+      uploadButton.textContent = '分析中...';
+      isUploading = true;
+  
+      const file = fileInput.files[0];
+      if (!file) {
+        resultElement.textContent = '请选择一个音频文件！';
+        resultElement.className = 'error';
+        resetButtonState();
+        return;
+      }
+  
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+  
+        const response = await fetch('http://127.0.0.1:5000/upload', {
+          method: 'POST',
+          body: formData,
+        });
+  
+        const data = await response.json();
+        if (response.ok) {
+          resultElement.textContent = `预测结果：${data.probability}`;
+          resultElement.className = 'success';
+        } else {
+          resultElement.textContent = `上传失败：${data.message}`;
+          resultElement.className = 'error';
+        }
+      } catch (error) {
+        resultElement.textContent = '上传失败，请检查网络连接！';
+        resultElement.className = 'error';
+      } finally {
+        resetButtonState();
+      }
+    });
+  
+    // 重置按钮状态
+    function resetButtonState() {
+      uploadButton.disabled = false;
+      uploadButton.textContent = '上传音频并预测';
+      isUploading = false;
+    }
+  
+    // 当用户选择新文件时清空显示
+    fileInput.addEventListener('change', () => {
+      resultElement.textContent = '';
+    });
+  </script>
+</body>
+</html>
+

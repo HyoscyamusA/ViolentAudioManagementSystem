@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>音频上传与预测</title>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #f5f5f5; /* 浅灰色背景 */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .container {
+      background-color: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 26px;
+      margin-bottom: 20px;
+      color: #3f51b5;
+    }
+
+    label {
+      font-size: 18px;
+      margin-bottom: 10px;
+      display: block;
+      color: #757575;
+    }
+
+    input[type="file"] {
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      background-color: #fafafa;
+      width: 100%;
+      margin-bottom: 20px;
+    }
+
+    button {
+      background-color: #3f51b5;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      width: 100%;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #303f9f;
+    }
+
+    .error {
+      color: red;
+      margin-top: 10px;
+    }
+
+    .success {
+      color: green;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+    <div class="container">
+      <h1>音频上传与暴力事件预测</h1>
+      <div id="upload-area">
+        <!-- 使用 div 代替 form，完全控制行为 -->
+        <label for="audio-file">选择音频文件：</label>
+        <input type="file" id="audio-file" name="file" accept=".wav" required />
+        <br />
+        <button type="button" id="upload-btn">上传音频并预测</button>
+      </div>
+      <p id="result"></p>
+    </div>
+    <script>
+      // 获取 DOM 元素
+      const uploadButton = document.getElementById('upload-btn');
+      const resultElement = document.getElementById('result');
+      const fileInput = document.getElementById('audio-file');
+  
+      // 完全阻止浏览器刷新事件
+      window.onbeforeunload = function () {
+        return "Are you sure you want to leave?";  // 给出提示防止刷新
+      };
+  
+      // 上传按钮点击事件
+      uploadButton.addEventListener('click', async (event) => {
+        event.preventDefault(); // 阻止默认行为
+        event.stopPropagation(); // 阻止事件冒泡
+  
+        console.log('Upload button clicked'); // 调试日志
+        resultElement.textContent = ''; // 清空结果区域
+  
+        const file = fileInput.files[0];
+        if (!file) {
+          resultElement.textContent = '请选择一个音频文件！';
+          resultElement.className = 'error'; // 错误信息的样式
+          return;
+        }
+  
+        const formData = new FormData();
+        formData.append('file', file);
+  
+        try {
+          const response = await fetch('http://127.0.0.1:5000/upload', {
+            method: 'POST',
+            body: formData,
+          });
+  
+          const data = await response.json();
+          if (response.ok) {
+            resultElement.textContent = `预测结果：${data.probability}`;
+            resultElement.className = 'success'; // 正常结果的样式
+          } else {
+            resultElement.textContent = `上传失败，错误信息：${data.message}`;
+            resultElement.className = 'error'; // 错误信息的样式
+          }
+        } catch (error) {
+          console.error('Error during upload:', error); // 调试日志
+          resultElement.textContent = '上传失败，请检查网络连接或后端服务！';
+          resultElement.className = 'error'; // 错误信息的样式
+        }
+      });
+  
+      // 当用户选择新文件时，清空显示区域
+      fileInput.addEventListener('change', () => {
+        resultElement.textContent = ''; // 清空旧结果
+      });
+    </script>
+  </body>
+  </html>
+  

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}数据可视化{% endblock %}
+{% block content %}
+<div class="chart-container">
+    <!-- 折线图卡片 -->
+    <div class="chart-card">
+        <h4 class="mb-4">暴力事件时间分布折线图</h4>
+        <div id="lineChart" style="height: 400px;"></div>
+        <script>
+            const lineChart = echarts.init(document.getElementById('lineChart'));
+            fetch('/events/data')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.event_times.length === 0) return;
+                    const option = {
+                        xAxis: {
+                            data: data.event_times
+                        },
+                        yAxis: {
+                            type: 'value'
+                        },
+                        series: [{
+                            data: data.event_times.map(() => 1), // 简单计数，可根据实际需求调整
+                            type: 'line',
+                            name: '事件发生次数'
+                        }]
+                    };
+                    lineChart.setOption(option);
+                });
+        </script>
+    </div>
+
+    <!-- 热力图卡片 -->
+    <div class="chart-card">
+        <h4 class="mb-4">事件分布热力图</h4>
+        <div id="heatmapChart" style="height: 400px;"></div>
+        <script>
+            const heatmapChart = echarts.init(document.getElementById('heatmapChart'));
+            fetch('/events/data')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.heatmap_data.length === 0) return;
+                    // 处理热力图坐标轴数据
+                    const xData = [...new Set(data.heatmap_data.map(item => item[0]))];
+                    const yData = [...new Set(data.heatmap_data.map(item => item[1]))];
+                    
+                    const heatmapOption = {
+                        xAxis: {
+                            type: 'category',
+                            data: xData,
+                            axisLabel: {
+                                rotate: 45
+                            }
+                        },
+                        yAxis: {
+                            type: 'category',
+                            data: yData
+                        },
+                        visualMap: {
+                            min: 0,
+                            max: 1,
+                            calculable: true,
+                            orient: 'horizontal',
+                            left: 'center'
+                        },
+                        series: [{
+                            data: data.heatmap_data.map(item => ({
+                                value: [xData.indexOf(item[0]), yData.indexOf(item[1]), 1]
+                            })),
+                            type: 'heatmap'
+                        }]
+                    };
+                    heatmapChart.setOption(heatmapOption);
+                });
+        </script>
+    </div>
+</div>
+{% endblock %}

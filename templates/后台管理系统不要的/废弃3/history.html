@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音频历史记录</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(45deg, #0D47A1, #1976D2);
+            color: white;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .nav {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 50px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 80px auto 0;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 30px;
+            border-radius: 15px;
+        }
+
+        .audio-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            display: grid;
+            grid-template-columns: 1fr 200px;
+            gap: 20px;
+        }
+
+        .audio-info {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .audio-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        audio {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .progress-bar {
+            height: 4px;
+            background: #444;
+            margin-top: 5px;
+        }
+
+        .progress {
+            height: 100%;
+            background: #4CAF50;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .prediction {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .violent {
+            color: #FF5722;
+        }
+
+        .non-violent {
+            color: #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <button onclick="window.location.href='index.html'">上传页面</button>
+        <button onclick="window.location.href='charts.html'">图表页面</button>
+    </div>
+
+    <div class="container">
+        <h1>历史音频记录</h1>
+        <div id="audio-list">
+            {% for event in events %}
+                <div class="audio-item">
+                    <div class="audio-info">
+                        <h3>{{ event.device_name }}</h3>
+                        <div>设备MAC地址: {{ event.mac_address }}</div>
+                        <div>事件时间: {{ event.event_datetime }}</div>
+                    </div>
+                    <!-- 这里可以添加音频播放相关的内容 -->
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/wavesurfer.js@6.2.0/dist/wavesurfer.min.js"></script>
+    <script>
+        async function loadAudioList() {
+            try {
+                const response = await fetch('http://127.0.0.1:5000/api/audio_files');
+                const data = await response.json();
+                
+                const listContainer = document.getElementById('audio-list');
+                listContainer.innerHTML = '';
+
+                data.forEach(file => {
+                    const item = document.createElement('div');
+                    item.className = 'audio-item';
+                    
+                    item.innerHTML = `
+                        <div class="audio-info">
+                            <h3>${file.device_name}</h3>
+                            <div>设备MAC地址: ${file.mac_address}</div>
+                            <div>事件时间: ${file.event_datetime}</div>
+                        </div>
+                        <div class="audio-controls">
+                            <!-- 这里可以添加音频播放相关的内容 -->
+                        </div>
+                    `;
+
+                    listContainer.appendChild(item);
+
+                    // 初始化波形图
+                    // const container = item.querySelector(`#waveform-${file.id}`);
+                    // const wavesurfer = WaveSurfer.create({
+                    //     container,
+                    //     waveColor: '#4CAF50',
+                    //     progressColor: '#2196F3',
+                    //     height: 80,
+                    //     barWidth: 2,
+                    //     cursorWidth: 0,
+                    //     interact: false
+                    // });
+                    // wavesurfer.load(`/uploads/${file.filename}`);
+                });
+
+            } catch (error) {
+                console.error('加载音频列表失败:', error);
+            }
+        }
+
+        // 初始加载
+        loadAudioList();
+    </script>
+</body>
+</html>

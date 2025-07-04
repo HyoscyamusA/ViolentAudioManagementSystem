@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}所有设备管理{% endblock %}
+{% block content %}
+    <h1>所有设备管理</h1>
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>MAC地址</th>
+                <th>设备名称</th>
+                <th>绑定用户</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for device in devices %}
+            <tr>
+                <td>{{ device.mac_address }}</td>
+                <td>{{ device.device_name or '未命名' }}</td>
+                <td>
+                    {% if device.user_id %}
+                        {{ device.username }}
+                    {% else %}
+                        <span class="text-muted">未绑定</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="3" class="text-center">暂无设备记录</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

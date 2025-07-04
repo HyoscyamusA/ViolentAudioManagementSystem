@@ -1,0 +1,254 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>图表分析</title>
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(45deg, #0D47A1, #1976D2);
+      color: white;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-y: auto;
+    }
+
+    .nav {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .nav button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-radius: 50px;
+      font-size: 16px;
+      transition: all 0.3s ease;
+    }
+
+    .nav button:hover {
+      background-color: #388E3C;
+      transform: scale(1.05);
+    }
+
+    .chart-container {
+      width: 80%;
+      max-width: 1200px;
+      margin-top: 80px;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    #heatmap {
+      width: 100%;
+      height: 500px;
+      margin-top: 20px;
+      border-radius: 15px;
+    }
+
+    select {
+      font-size: 16px;
+      padding: 10px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="nav">
+    <button onclick="window.location.href='index.html'">上传页面</button>
+    <button onclick="window.location.href='charts.html'">图表页面</button>
+  </div>
+
+  <div class="chart-container">
+    <h2>设备出现次数趋势</h2>
+    <canvas id="line-chart"></canvas>
+  </div>
+
+  <div class="chart-container">
+    <h2>暴力事件分布热力图</h2>
+    <select id="device-select"></select> <!-- 下拉菜单用于选择设备 -->
+    <div id="heatmap"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min"></script>
+  <script>
+    // 获取设备列表并填充到下拉菜单中
+    async function fetchDevices() {
+      try {
+        const response = await fetch('http://127.0.0.1:5000/api/devices');
+        const devices = await response.json();
+        const deviceSelect = document.getElementById('device-select');
+        devices.forEach(device => {
+          const option = document.createElement('option');
+          option.value = device.device_id;
+          option.textContent = device.device_id;
+          deviceSelect.appendChild(option);
+        });
+
+        // 选择设备后更新热力图
+        deviceSelect.addEventListener('change', updateHeatmap);
+
+        // 默认加载第一个设备
+        if (devices.length > 0) {
+          deviceSelect.value = devices[0].device_id;
+          updateHeatmap();
+        }
+
+      } catch (error) {
+        console.error('获取设备列表失败', error);
+      }
+    }
+
+    // 更新热力图数据
+    async function updateHeatmap() {
+      const deviceId = document.getElementById('device-select').value;
+      try {
+        const response = await fetch(`http://127.0.0.1:5000/api/heatmap_data?device_id=${deviceId}`);
+        const records = await response.json();
+        console.log(records);  // 打印返回的数据，检查是否有内容
+
+        // 如果没有数据，显示错误消息
+        if (!records || records.length === 0) {
+          console.error('没有获取到有效数据');
+          return;
+        }
+
+        // 转换数据为月份和日期格式
+        const data = processHeatmapData(records);
+
+        // 检查处理后的数据是否为空
+        if (data.length === 0) {
+          console.error('处理后的数据为空');
+          return;
+        }
+
+        const x = data.map(d => d.day); // Dates (1–31)
+        const y = data.map(d => d.month); // Months (e.g., "Jan", "Feb")
+        const z = data.map(d => d.event_count); // Event counts
+
+        // 检查 x, y, z 是否有效
+        if (x.length === 0 || y.length === 0 || z.length === 0) {
+          console.error('热力图数据缺失');
+          return;
+        }
+
+        const calendarData = {
+          type: 'heatmap',
+          x: x,  // Dates (1–31)
+          y: y,  // Months (Jan, Feb, etc.)
+          z: z,  // Event counts
+          colorscale: 'Viridis',
+          colorbar: { title: '事件次数' }
+        };
+
+        const layout = {
+          title: `设备 ${deviceId} 的暴力事件分布热力图`,
+          xaxis: { title: '日期', tickmode: 'array', tickvals: Array.from({ length: 31 }, (_, i) => i + 1) },
+          yaxis: { title: '月份' },
+          height: 500,
+          margin: { t: 40, b: 40, l: 40, r: 40 },
+          showlegend: false,
+        };
+
+        Plotly.newPlot('heatmap', [calendarData], layout);
+
+      } catch (error) {
+        console.error('获取热力图数据失败', error);
+      }
+    }
+
+    // 数据转换为月份和日期格式
+    function processHeatmapData(records) {
+      const data = [];
+
+      records.forEach(record => {
+        const date = new Date(record.event_date);
+        const month = date.toLocaleString('default', { month: 'short' }); // 获取月份（缩写）
+        const day = date.getDate(); // 获取日期（1–31）
+
+        // Skip records with missing event_count, month, or day
+        if (day && month && record.event_count) {
+          data.push({
+            month: month,
+            day: day,
+            event_count: record.event_count
+          });
+        }
+      });
+
+      return data;
+    }
+
+    // 绘制折线图（设备出现次数）
+    async function fetchLineChartData() {
+      try {
+        const response = await fetch('http://127.0.0.1:5000/api/line_chart_data');
+        const records = await response.json();
+
+        const deviceIds = new Set();
+        for (const date in records) {
+          for (const device_id in records[date]) {
+            deviceIds.add(device_id);
+          }
+        }
+
+        const lineCtx = document.getElementById('line-chart').getContext('2d');
+        new Chart(lineCtx, {
+          type: 'line',
+          data: {
+            labels: Object.keys(records), // 获取日期作为 x 轴标签
+            datasets: Array.from(deviceIds).map(device_id => ({
+              label: `设备ID: ${device_id}`,
+              data: Object.entries(records).map(([date, devices]) => devices[device_id]?.event_count || 0), // 获取设备ID对应的次数
+              borderColor: `#${Math.floor(Math.random() * 16777215).toString(16)}`, // 随机颜色
+              fill: false,
+              tension: 0.4, // 为了让线条更加平滑
+            })),
+          },
+          options: {
+            responsive: true,
+            scales: {
+              y: { 
+                beginAtZero: true, 
+                title: { text: '设备上传次数', display: true }
+              },
+              x: {
+                title: '时间',
+                ticks: {
+                  autoSkip: true, // 自动跳过部分 x 轴标签
+                  maxRotation: 90, // 最大旋转角度
+                  minRotation: 45,
+                },
+              },
+            },
+          },
+        });
+
+      } catch (error) {
+        console.error('获取设备出现次数数据失败', error);
+      }
+    }
+
+    // 初始化
+    fetchDevices();
+    fetchLineChartData();
+
+  </script>
+</body>
+</html>

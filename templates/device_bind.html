@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}设备绑定{% endblock %}
+{% block content %}
+    <h1>设备绑定</h1>
+    <!-- 新增：获取并渲染 flash 消息 -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+        <div class="mb-3">
+            <label class="form-label">MAC地址</label>
+            <input type="text" class="form-control" name="mac_address" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">设备名称（可选）</label>
+            <input type="text" class="form-control" name="device_name">
+        </div>
+        <button type="submit" class="btn btn-primary">提交绑定</button>
+    </form>
+{% endblock %}

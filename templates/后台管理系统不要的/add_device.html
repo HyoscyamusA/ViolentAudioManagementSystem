@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>添加设备</title>
+</head>
+<body>
+    <h1>添加设备</h1>
+    <form method="post">
+        <label for="mac_address">设备 MAC 地址</label>
+        <input type="text" name="mac_address" id="mac_address" required><br>
+        <label for="device_name">设备名称</label>
+        <input type="text" name="device_name" id="device_name" required><br>
+        <h6 align="center" style="color:red ">{{ get_flashed_messages()[0] }} </h6>
+        <input type="submit" value="添加">
+    </form>
+</body>
+</html>

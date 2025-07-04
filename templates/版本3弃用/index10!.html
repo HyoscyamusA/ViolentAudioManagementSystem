@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>音频上传与暴力事件预测</title>
+  <style>
+    /* 保持原有样式不变 */
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(45deg, #0D47A1, #1976D2);
+      color: white;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      overflow-y: auto;
+    }
+
+    .container {
+      display: flex;
+      justify-content: space-between;
+      width: 90%;
+      max-width: 1400px;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 50px;
+      border-radius: 25px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .left-panel, .right-panel {
+    width: 48%;
+  }
+
+  h1 {
+    font-size: 40px;
+    margin-bottom: 40px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-align: center;
+  }
+
+  .container input[type="file"] {
+    padding: 15px;
+    background: #fff;
+    border-radius: 50px;
+    border: none;
+    margin-bottom: 20px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    width: 100%;
+    text-align: center;
+    font-weight: bold;
+    color: #2196F3;
+    border: 2px solid #2196F3;
+  }
+
+  .container input[type="file"]:hover {
+    background-color: #2196F3;
+    color: white;
+    transform: scale(1.05);
+  }
+
+  .container button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 18px 30px;
+    cursor: pointer;
+    border-radius: 50px;
+    font-size: 20px;
+    transition: all 0.3s ease;
+    margin-top: 20px;
+    width: 100%;
+    text-align: center;
+  }
+
+  .container button:hover {
+    background-color: #388E3C;
+    transform: scale(1.05);
+  }
+
+  .audio-player {
+    margin-top: 30px;
+    display: block;
+    width: 100%;
+  }
+
+  .audio-player audio {
+    width: 100%;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  }
+
+  .waveform {
+    margin-top: 30px;
+    width: 100%;
+    height: 150px;
+    margin-bottom: 30px;
+    background-color: transparent;
+    overflow: hidden;
+  }
+
+  .result {
+    margin-top: 20px;
+    font-size: 22px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-align: center;
+  }
+
+  .loading {
+    font-size: 18px;
+    color: #ff9800;
+    display: none;
+    text-align: center;
+    margin-top: 20px;
+  }
+
+  .success {
+    color: #4caf50;
+  }
+
+  .error {
+    color: red;
+  }
+
+  .chart-container {
+    width: 100%;
+    height: 250px;
+    margin-top: 30px;
+  }
+
+  .analysis-container {
+    margin-top: 30px;
+    background: rgba(0, 0, 0, 0.9);
+    padding: 25px;
+    border-radius: 10px;
+    text-align: center;
+  }
+
+  .analysis-result {
+    font-size: 28px;
+    font-weight: bold;
+    color: #fff;
+    margin-top: 30px;
+  }
+
+  .analysis-container h2 {
+    font-size: 24px;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: #ddd;
+    letter-spacing: 1px;
+  }
+
+  .nav {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    gap: 10px;
+  }
+
+  .nav button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    border-radius: 50px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+  }
+
+  .nav button:hover {
+    background-color: #388E3C;
+    transform: scale(1.05);
+  }
+    /* 其他样式保持不变... */
+  </style>
+</head>
+<body>
+  <div class="nav">
+    <button onclick="window.location.href='index.html'">上传页面</button>
+    <button onclick="window.location.href='charts.html'">图表页面</button>
+    <!-- 新增历史记录页面链接 -->
+    <button onclick="window.location.href='history.html'">历史记录</button>
+  </div>
+
+  <div class="container">
+    <div class="left-panel">
+      <h1>音频上传与暴力事件预测</h1>
+      <form id="upload-form">
+        <input type="file" id="audio-file" name="file" accept=".wav" required />
+        <button type="button" id="upload-btn">上传音频并预测</button>
+      </form>
+      <div id="audio-player" class="audio-player">
+        <audio id="audio-preview" controls>
+          <p>您的浏览器不支持音频播放。</p>
+        </audio>
+      </div>
+      <p id="result" class="result"></p>
+      <div id="loading" class="loading">上传中，请稍候...</div>
+
+      <div class="chart-container">
+        <canvas id="prediction-chart"></canvas>
+      </div>
+
+      <div id="progress-bar" style="width: 100%; height: 10px; background-color: #ddd; border-radius: 10px; margin-top: 20px; display: none;">
+        <div id="progress" style="height: 100%; width: 0%; background-color: #4caf50; border-radius: 10px;"></div>
+      </div>
+    </div>
+
+    <div class="right-panel">
+      <div class="analysis-container">
+        <h2>结果分析</h2>
+        <p id="analysis-result" class="analysis-result">等待预测...</p>
+        <div id="waveform" class="waveform"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/wavesurfer.js@6.2.0/dist/wavesurfer.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // 获取所有需要的DOM元素
+      const uploadForm = document.getElementById('upload-form');
+      const uploadButton = document.getElementById('upload-btn');
+      const resultElement = document.getElementById('result');
+      const fileInput = document.getElementById('audio-file');
+      const audioPlayer = document.getElementById('audio-player');
+      const audioPreview = document.getElementById('audio-preview');
+      const loadingElement = document.getElementById('loading');
+      const waveformContainer = document.getElementById('waveform');
+      const analysisResult = document.getElementById('analysis-result');
+
+      let isUploading = false;
+
+      // 初始化波形图
+      const wavesurfer = WaveSurfer.create({
+        container: waveformContainer,
+        waveColor: '#4CAF50',
+        progressColor: '#03A9F4',
+        height: 150,
+        barWidth: 3,
+        cursorColor: '#FF9800',
+        cursorWidth: 2
+      });
+
+      // 初始化预测图表
+      const ctx = document.getElementById('prediction-chart').getContext('2d');
+      const predictionChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['暴力事件', '非暴力事件'],
+          datasets: [{
+            label: '预测概率',
+            data: [0, 0],
+            backgroundColor: ['#FF5722', '#4CAF50'],
+            borderColor: ['#FF5722', '#4CAF50'],
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 1
+            }
+          }
+        }
+      });
+
+      // 阻止表单默认提交行为
+      uploadForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+      });
+
+      // 上传按钮点击处理
+      uploadButton.addEventListener('click', async () => {
+        if (isUploading) return;
+        
+        isUploading = true;
+        resetUIState();
+        
+        const file = fileInput.files[0];
+        if (!validateFile(file)) {
+          isUploading = false;
+          return;
+        }
+
+        try {
+          showLoadingState();
+          await processFileUpload(file);
+        } catch (error) {
+          handleUploadError(error);
+        } finally {
+          isUploading = false;
+        }
+      });
+
+      // 文件选择变化处理
+      fileInput.addEventListener('change', () => {
+        resetUIState();
+        const file = fileInput.files[0];
+        if (file) {
+          previewAudio(file);
+        }
+      });
+
+      // === 工具函数 ===
+      function resetUIState() {
+        resultElement.textContent = '';
+        analysisResult.textContent = '等待预测...';
+        analysisResult.style.color = '#fff';
+        audioPlayer.style.display = 'none';
+        waveformContainer.style.display = 'none';
+      }
+
+      function validateFile(file) {
+        if (!file) {
+          showError('请选择一个音频文件！');
+          return false;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+          showError('文件大小不能超过10MB');
+          return false;
+        }
+        return true;
+      }
+
+      function showLoadingState() {
+        loadingElement.style.display = 'block';
+        waveformContainer.style.display = 'block';
+      }
+
+      async function processFileUpload(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('http://127.0.0.1:5000/upload', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || '上传失败');
+        }
+
+        const data = await response.json();
+        updateUIWithResults(data);
+      }
+
+      function updateUIWithResults(data) {
+        const violent = data.violent_probability || 0;
+        const nonViolent = data.non_violent_probability || 0;
+
+        // 更新文本显示
+        resultElement.textContent = `暴力事件概率：${(violent * 100).toFixed(2)}% | 非暴力事件概率：${(nonViolent * 100).toFixed(2)}%`;
+        resultElement.className = 'success';
+
+        // 更新图表数据
+        predictionChart.data.datasets[0].data = [violent, nonViolent];
+        predictionChart.update();
+
+        // 更新分析结果
+        analysisResult.textContent = violent > nonViolent ? 
+          '预测结果：暴力事件' : '预测结果：非暴力事件';
+        analysisResult.style.color = violent > nonViolent ? 
+          '#FF5722' : '#4CAF50';
+      }
+
+      function previewAudio(file) {
+        const url = URL.createObjectURL(file);
+        audioPreview.src = url;
+        audioPlayer.style.display = 'block';
+        wavesurfer.load(url);
+      }
+
+      function handleUploadError(error) {
+        console.error('上传错误:', error);
+        loadingElement.style.display = 'none';
+        showError(error.message || '上传失败，请检查网络连接');
+      }
+
+      function showError(message) {
+        resultElement.textContent = message;
+        resultElement.className = 'error';
+        analysisResult.textContent = '分析失败';
+        analysisResult.style.color = '#FF5722';
+      }
+
+      // 页面离开提示
+      window.addEventListener('beforeunload', (event) => {
+        if (isUploading) {
+          event.preventDefault();
+          event.returnValue = '文件正在上传，确定要离开吗？';
+        }
+      });
+    });
+  </script>
+</body>
+</html>

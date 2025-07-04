@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}音频上传{% endblock %}
+{% block content %}
+    <h1>音频上传</h1>
+    <!-- 新增：获取并渲染 flash 消息 -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST" enctype="multipart/form-data" id="upload-form">
+        <div class="mb-3">
+            <label class="form-label">音频文件</label>
+            <input type="file" class="form-control" name="audio_file" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">音频名称（可选）</label>
+            <input type="text" class="form-control" name="audio_name">
+        </div>
+        <button type="submit" class="btn btn-primary">上传音频</button>
+    </form>
+
+    <!-- 新增：用于显示暴力概率和非暴力概率的柱形图 -->
+    <div id="probability-chart-container" style="width: 600px; height: 300px; margin-top: 20px;">
+        <canvas id="probability-chart"></canvas>
+    </div>
+
+    <!-- 新增：用于显示音频波形图 -->
+    <div id="waveform-container" style="width: 600px; height: 150px; margin-top: 20px;">
+        <div id="waveform"></div>
+    </div>
+
+    <!-- 引入 Chart.js 用于绘制柱形图 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- 引入 Wavesurfer.js 用于绘制音频波形图 -->
+    <script src="https://unpkg.com/wavesurfer.js"></script>
+
+    <script>
+        const form = document.getElementById('upload-form');
+        const audioFileInput = document.querySelector('input[name="audio_file"]');
+        const probabilityChartCanvas = document.getElementById('probability-chart');
+        const waveformDiv = document.getElementById('waveform');
+
+        // 初始化 Wavesurfer
+        const wavesurfer = WaveSurfer.create({
+            container: waveformDiv,
+            waveColor: 'violet',
+            progressColor: 'purple'
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData();
+            formData.append('audio_file', audioFileInput.files[0]);
+
+            try {
+                const response = await fetch('/upload_audio', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.status_code === 20000) {
+                    // 绘制暴力概率和非暴力概率柱形图
+                    new Chart(probabilityChartCanvas, {
+                        type: 'bar',
+                        data: {
+                            labels: ['暴力概率', '非暴力概率'],
+                            datasets: [{
+                                label: '概率',
+                                data: [data.probability, data.non_violence_probability],
+                                backgroundColor: ['rgba(255, 99, 132, 0.2)', 'rgba(54, 162, 235, 0.2)'],
+                                borderColor: ['rgba(255, 99, 132, 1)', 'rgba(54, 162, 235, 1)'],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+
+                    // 加载音频并绘制波形图
+                    const audioBlob = await fetch(data.audio_url).then(res => res.blob());
+                    wavesurfer.loadBlob(audioBlob);
+                } else {
+                    alert(data.message);
+                }
+            } catch (error) {
+                console.error('上传出错:', error);
+            }
+        });
+    </script>
+{% endblock %}

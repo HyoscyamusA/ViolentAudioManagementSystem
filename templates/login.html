@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能暴力检测系统</title>
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 粒子画布 */
+        #particleCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        /* 左侧背景区 */
+        .left-panel {
+            width: 60%;
+            height: 100vh;
+            position: relative;
+            background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), 
+                        url('https://ai-public.mastergo.com/ai/img_res/182b0539915671790d7e8153b2b0aec8.jpg');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            padding: 4rem;
+            color: white;
+            z-index: 2;
+        }
+
+        .left-content {
+            position: relative;
+            z-index: 3;
+        }
+
+        /* 右侧登录区 */
+        .right-panel {
+            width: 40%;
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            z-index: 2;
+        }
+
+        /* 登录表单样式 */
+        .login-container {
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .logo {
+            font-family: 'Pacifico', cursive;
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+            color: #2D3748;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .login-header h1 {
+            font-size: 2rem;
+            color: #2D3748;
+            margin-bottom: 0.5rem;
+        }
+
+        .login-header p {
+            color: #718096;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #718096;
+            z-index: 2;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 20px 12px 45px;
+            border: 1px solid #E2E8F0;
+            border-radius: 4px;
+            font-size: 1rem;
+            color: #2D3748;
+            transition: all 0.2s;
+        }
+
+        input:focus {
+            border-color: #0066CC;
+            box-shadow: 0 0 0 1px #0066CC;
+            outline: none;
+        }
+
+        .remember-forgot {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 1.5rem 0;
+            font-size: 0.9rem;
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            color: #718096;
+        }
+
+        .remember-me input {
+            margin-right: 8px;
+        }
+
+        .forgot-password {
+            color: #0066CC;
+            text-decoration: none;
+        }
+
+        .forgot-password:hover {
+            text-decoration: underline;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background: #0066CC;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .login-btn:hover {
+            background: #0052a3;
+        }
+
+        .register-link {
+            text-align: center;
+            margin-top: 2rem;
+            color: #718096;
+        }
+
+        .register-link a {
+            color: #0066CC;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="particleCanvas"></canvas>
+    
+    <!-- 左侧背景区 -->
+    <div class="left-panel">
+        <div class="left-content">
+            <!--<div class="logo">ViolenceDetect</div>-->
+            <h2 style="font-size: 2.5rem; margin-bottom: 1.5rem;">Security Sentinel</h2>
+            <p style="font-size: 1.1rem; line-height: 1.6;">
+                基于音频检测的人工智能安全防范系统<br>
+                实时监控 · 快速响应 · 精准预警
+            </p>
+        </div>
+    </div>
+
+    <!-- 右侧登录区 -->
+    <div class="right-panel">
+        <div class="login-container">
+            <div class="login-header">
+                <h2>系统登录</h2>
+                <p>请输入您的账号信息</p>
+            </div>
+            
+            {% if error %}
+                <p class="error" style="color: #e53e3e; margin-bottom: 1rem;">{{ error }}</p>
+            {% endif %}
+            
+            <form method="post">
+                <div class="input-group">
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="username" name="username" placeholder="请输入用户名" required>
+                </div>
+                
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="password" name="password" placeholder="请输入密码" required>
+                </div>
+                
+                
+                <button type="submit" class="login-btn">登录</button>
+            </form>
+            
+            <p class="register-link">没有账号? <a href="/register">立即注册</a></p>
+        </div>
+    </div>
+
+    <script>
+        // 粒子动画脚本（保持原有功能）
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        const particles = [];
+        const lines = [];
+
+        // 初始化粒子
+        function createParticles() {
+            for (let i = 0; i < 80; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    radius: Math.random() * 2 + 1,
+                    speedX: (Math.random() - 0.5) * 1.5,
+                    speedY: (Math.random() - 0.5) * 1.5
+                });
+            }
+        }
+
+        // 初始化流光线条
+        function createLightLines() {
+            for (let i = 0; i < 15; i++) {
+                lines.push({
+                    x: Math.random() * -100,
+                    y: Math.random() * canvas.height,
+                    length: 100 + Math.random() * 50,
+                    speed: 1 + Math.random() * 3,
+                    alpha: 0.3 + Math.random() * 0.3
+                });
+            }
+        }
+
+        // 绘制函数
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制粒子
+            particles.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(0, 102, 204, ${0.6})`;
+                ctx.fill();
+            });
+
+            // 绘制流光线条
+            lines.forEach(line => {
+                ctx.beginPath();
+                ctx.moveTo(line.x, line.y);
+                ctx.lineTo(line.x + line.length, line.y);
+                ctx.strokeStyle = `rgba(0, 102, 204, ${line.alpha})`;
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            });
+        }
+
+        // 更新位置
+        function update() {
+            particles.forEach(p => {
+                p.x += p.speedX;
+                p.y += p.speedY;
+                
+                // 边界反弹
+                if (p.x < 0 || p.x > canvas.width) p.speedX *= -1;
+                if (p.y < 0 || p.y > canvas.height) p.speedY *= -1;
+            });
+
+            lines.forEach(line => {
+                line.x += line.speed;
+                if (line.x > canvas.width) {
+                    line.x = -line.length;
+                    line.y = Math.random() * canvas.height;
+                }
+            });
+        }
+
+        // 动画循环
+        function animate() {
+            draw();
+            update();
+            requestAnimationFrame(animate);
+        }
+
+        createParticles();
+        createLightLines();
+        animate();
+    </script>
+</body>
+</html>
